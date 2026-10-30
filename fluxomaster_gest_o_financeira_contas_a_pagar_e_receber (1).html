@@ -1,0 +1,2841 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FluxoMaster - Gestão Financeira: Contas a Pagar e Receber</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- html2pdf.js for generating and downloading PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+
+    /* Print Styles */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm 12mm;
+      }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 10pt;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      .print-container {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .print-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+      }
+      .print-table th, .print-table td {
+        border: 1px solid #d1d5db !important;
+        padding: 6px 8px !important;
+        color: #111827 !important;
+      }
+      .print-table th {
+        background-color: #f3f4f6 !important;
+        font-weight: 700 !important;
+      }
+      .page-break-inside-avoid {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .print-card {
+        border: 1px solid #e5e7eb !important;
+        background: #fafafa !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none no-print"></div>
+
+  <!-- APP SHELL -->
+  <div class="flex-1 flex flex-col md:flex-row">
+    
+    <!-- SIDEBAR -->
+    <aside class="w-full md:w-64 bg-slate-900 text-white flex-shrink-0 flex flex-col justify-between no-print shadow-xl">
+      <div>
+        <!-- Logo / Brand -->
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-emerald-500/20">
+              F$
+            </div>
+            <div>
+              <h1 class="font-bold text-lg leading-tight tracking-tight text-white">FluxoMaster</h1>
+              <p class="text-xs text-slate-400 font-medium">Contas & Relatórios</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="p-4 space-y-1.5" id="mainNav">
+          <button id="navDashboard" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-all bg-emerald-600 text-white shadow-md shadow-emerald-900/30">
+            <div class="flex items-center gap-3">
+              <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+              <span>Dashboard</span>
+            </div>
+          </button>
+
+          <button id="navPagar" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
+            <div class="flex items-center gap-3">
+              <svg class="w-5 h-5 flex-shrink-0 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Contas a Pagar</span>
+            </div>
+            <span id="badgePagarPendentes" class="text-xs bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full font-bold">0</span>
+          </button>
+
+          <button id="navReceber" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
+            <div class="flex items-center gap-3">
+              <svg class="w-5 h-5 flex-shrink-0 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Contas a Receber</span>
+            </div>
+            <span id="badgeReceberPendentes" class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold">0</span>
+          </button>
+
+          <button id="navContatos" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
+            <div class="flex items-center gap-3">
+              <svg class="w-5 h-5 flex-shrink-0 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              <span>Clientes & Fornecedores</span>
+            </div>
+          </button>
+
+          <button id="navRelatorios" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all">
+            <div class="flex items-center gap-3">
+              <svg class="w-5 h-5 flex-shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Relatórios & Impressão</span>
+            </div>
+            <span class="text-[10px] bg-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">PDF</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Footer Quick Info & Actions -->
+      <div class="p-4 border-t border-slate-800 space-y-2">
+        <div class="bg-slate-800/60 rounded-lg p-3 text-xs space-y-1">
+          <p class="text-slate-400">Data do Sistema:</p>
+          <p id="systemDateDisplay" class="font-semibold text-slate-200">30 de Outubro de 2026</p>
+        </div>
+        <div class="space-y-1.5">
+          <button id="btnZerarDados" class="w-full bg-rose-950/70 hover:bg-rose-900 border border-rose-800/80 text-rose-300 hover:text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 shadow-sm">
+            <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            <span>Zerar Todos os Dados</span>
+          </button>
+          <div class="flex gap-2">
+            <button id="btnBackup" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2 py-1.5 rounded text-xs font-medium transition flex items-center justify-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+              Backup
+            </button>
+            <button id="btnResetDemo" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2 py-1.5 rounded text-xs font-medium transition flex items-center justify-center gap-1" title="Carregar dados de demonstração">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              Demo
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-y-auto">
+      
+      <!-- TOP BAR -->
+      <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 no-print sticky top-0 z-20 shadow-sm">
+        <div>
+          <h2 id="pageTitle" class="text-xl font-bold text-slate-800 tracking-tight">Visão Geral Financeira</h2>
+          <p id="pageSubtitle" class="text-xs text-slate-500">Resumo executivo do fluxo financeiro da sua empresa</p>
+        </div>
+
+        <!-- Quick Action Buttons -->
+        <div class="flex items-center gap-2">
+          <button id="btnQuickPagar" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-semibold transition shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            + Conta a Pagar
+          </button>
+          <button id="btnQuickReceber" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition shadow-sm shadow-emerald-600/20">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            + Conta a Receber
+          </button>
+        </div>
+      </header>
+
+      <!-- VIEW CONTAINER -->
+      <div class="p-6 flex-1 space-y-6">
+
+        <!-- ========================================== -->
+        <!-- VIEW 1: DASHBOARD -->
+        <!-- ========================================== -->
+        <section id="viewDashboard" class="space-y-6">
+          
+          <!-- KPI Cards Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total a Receber -->
+            <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow transition">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">A Receber (Pendente)</span>
+                <span class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/></svg>
+                </span>
+              </div>
+              <p id="kpiReceberPendente" class="text-2xl font-bold text-emerald-600">R$ 0,00</p>
+              <div class="mt-2 flex items-center justify-between text-xs text-slate-500">
+                <span id="kpiReceberCount">0 lançamentos</span>
+                <span id="kpiRecebidoTotal" class="text-slate-600 font-medium">Recebido: R$ 0,00</span>
+              </div>
+            </div>
+
+            <!-- Total a Pagar -->
+            <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow transition">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">A Pagar (Pendente)</span>
+                <span class="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center font-bold">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"/></svg>
+                </span>
+              </div>
+              <p id="kpiPagarPendente" class="text-2xl font-bold text-rose-600">R$ 0,00</p>
+              <div class="mt-2 flex items-center justify-between text-xs text-slate-500">
+                <span id="kpiPagarCount">0 lançamentos</span>
+                <span id="kpiPagoTotal" class="text-slate-600 font-medium">Pago: R$ 0,00</span>
+              </div>
+            </div>
+
+            <!-- Saldo Previsto (Projetado) -->
+            <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow transition">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Saldo Previsto</span>
+                <span class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                </span>
+              </div>
+              <p id="kpiSaldoPrevisto" class="text-2xl font-bold text-blue-600">R$ 0,00</p>
+              <p class="mt-2 text-xs text-slate-500">Receber Total - Pagar Total</p>
+            </div>
+
+            <!-- Saldo Realizado -->
+            <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow transition">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Saldo Realizado (Caixa)</span>
+                <span class="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+              </div>
+              <p id="kpiSaldoRealizado" class="text-2xl font-bold text-slate-800">R$ 0,00</p>
+              <p class="mt-2 text-xs text-slate-500">Efetivamente Recebido - Pago</p>
+            </div>
+          </div>
+
+          <!-- Alert Banners for Overdue & Today -->
+          <div id="dashboardAlerts" class="space-y-3"></div>
+
+          <!-- Charts Row -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Cash Flow Bar Chart -->
+            <div class="lg:col-span-2 bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                  Evolução Mensal: Receitas vs Despesas (2026)
+                </h3>
+                <span class="text-xs text-slate-400">Valores em R$</span>
+              </div>
+              <div class="relative h-72">
+                <canvas id="chartFluxoMes"></canvas>
+              </div>
+            </div>
+
+            <!-- Categories Doughnut -->
+            <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                  Despesas por Categoria
+                </h3>
+              </div>
+              <div class="relative h-72 flex-1">
+                <canvas id="chartCategorias"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Upcoming Dues Table -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 class="font-bold text-sm text-slate-800">Próximos Vencimentos</h3>
+                <p class="text-xs text-slate-500">Contas a pagar e receber com vencimento próximo</p>
+              </div>
+              <button id="btnVerTodasContas" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700">Ver todas &rarr;</button>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider">
+                  <tr>
+                    <th class="px-5 py-3">Tipo</th>
+                    <th class="px-5 py-3">Vencimento</th>
+                    <th class="px-5 py-3">Pessoa / Fornecedor</th>
+                    <th class="px-5 py-3">Descrição</th>
+                    <th class="px-5 py-3">Valor</th>
+                    <th class="px-5 py-3">Status</th>
+                    <th class="px-5 py-3 text-right">Ação</th>
+                  </tr>
+                </thead>
+                <tbody id="upcomingTableBody" class="divide-y divide-slate-100 font-medium">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: CONTAS A PAGAR -->
+        <!-- ========================================== -->
+        <section id="viewPagar" class="hidden space-y-4">
+          <!-- Filter Bar -->
+          <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+            <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
+              <div class="relative flex-1 sm:w-60">
+                <input type="text" id="filterPagarSearch" placeholder="Buscar descrição, fornecedor..." class="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              </div>
+              <select id="filterPagarStatus" class="text-xs border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-500">
+                <option value="todos">Status: Todos</option>
+                <option value="pendente">Pendentes</option>
+                <option value="pago">Pagos</option>
+                <option value="atrasado">Em Atraso</option>
+              </select>
+              <select id="filterPagarFornecedor" class="text-xs border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-rose-500">
+                <option value="todos">Fornecedor: Todos</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+              <button id="btnNovoPagar" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm shadow-rose-600/30">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Nova Conta a Pagar
+              </button>
+            </div>
+          </div>
+
+          <!-- Totalizador Bar -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-rose-50 border border-rose-200/60 rounded-lg p-3">
+              <p class="text-[11px] font-semibold text-rose-700 uppercase">Total a Pagar</p>
+              <p id="sumPagarTotal" class="text-lg font-bold text-rose-900 mt-0.5">R$ 0,00</p>
+            </div>
+            <div class="bg-amber-50 border border-amber-200/60 rounded-lg p-3">
+              <p class="text-[11px] font-semibold text-amber-700 uppercase">Pendente</p>
+              <p id="sumPagarPendente" class="text-lg font-bold text-amber-900 mt-0.5">R$ 0,00</p>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-200/60 rounded-lg p-3">
+              <p class="text-[11px] font-semibold text-emerald-700 uppercase">Já Pago</p>
+              <p id="sumPagarPago" class="text-lg font-bold text-emerald-900 mt-0.5">R$ 0,00</p>
+            </div>
+            <div class="bg-red-50 border border-red-200/60 rounded-lg p-3">
+              <p class="text-[11px] font-semibold text-red-700 uppercase">Vencido / Atrasado</p>
+              <p id="sumPagarAtrasado" class="text-lg font-bold text-red-900 mt-0.5">R$ 0,00</p>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider">
+                  <tr>
+                    <th class="px-4 py-3">Vencimento</th>
+                    <th class="px-4 py-3">Fornecedor</th>
+                    <th class="px-4 py-3">Descrição / Documento</th>
+                    <th class="px-4 py-3">Categoria</th>
+                    <th class="px-4 py-3">Valor</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3">Pagamento</th>
+                    <th class="px-4 py-3 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="pagarTableBody" class="divide-y divide-slate-100 font-medium">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 3: CONTAS A RECEBER -->
+        <!-- ========================================== -->
+        <section id="viewReceber" class="hidden space-y-4">
+          <!-- Filter Bar -->
+          <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3 items-center justify-between">
+            <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
+              <div class="relative flex-1 sm:w-60">
+                <input type="text" id="filterReceberSearch" placeholder="Buscar descrição, cliente..." class="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              </div>
+              <select id="filterReceberStatus" class="text-xs border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="todos">Status: Todos</option>
+                <option value="pendente">Pendentes</option>
+                <option value="recebido">Recebidos</option>
+                <option value="atrasado">Em Atraso</option>
+              </select>
+              <select id="filterReceberCliente" class="text-xs border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <option value="todos">Cliente: Todos</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+              <button id="btnNovoReceber" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm shadow-emerald-600/30">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                Nova Conta a Receber
+              </button>
+            </div>
+          </div>
+
+          <!-- Totalizador Bar -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-emerald-50 border border-emerald-200/60 rounded-lg p-3">
+              <p class="text-[11px] font-semibold text-emerald-700 uppercase">Total a Receber</p>
+              <p id="sumReceberTotal" class="text-lg font-bold text-emerald-900 mt-0.5">R$ 0,00</p>
+            </div>
+            <div class="bg-blue-50 border border-blue-200/60 rounded-lg p-3">
+              <p class="text-[11px] font-semibold text-blue-700 uppercase">Pendente</p>
+              <p id="sumReceberPendente" class="text-lg font-bold text-blue-900 mt-0.5">R$ 0,00</p>
+            </div>
+            <div class="bg-teal-50 border border-teal-200/60 rounded-lg p-3">
+              <p class="text-[11px] font-semibold text-teal-700 uppercase">Já Recebido</p>
+              <p id="sumReceberRecebido" class="text-lg font-bold text-teal-900 mt-0.5">R$ 0,00</p>
+            </div>
+            <div class="bg-amber-50 border border-amber-200/60 rounded-lg p-3">
+              <p class="text-[11px] font-semibold text-amber-700 uppercase">Vencido / Atrasado</p>
+              <p id="sumReceberAtrasado" class="text-lg font-bold text-amber-900 mt-0.5">R$ 0,00</p>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider">
+                  <tr>
+                    <th class="px-4 py-3">Vencimento</th>
+                    <th class="px-4 py-3">Cliente</th>
+                    <th class="px-4 py-3">Descrição / Documento</th>
+                    <th class="px-4 py-3">Categoria</th>
+                    <th class="px-4 py-3">Valor</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3">Recebimento</th>
+                    <th class="px-4 py-3 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="receberTableBody" class="divide-y divide-slate-100 font-medium">
+                  <!-- Injected via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 4: CLIENTES & FORNECEDORES -->
+        <!-- ========================================== -->
+        <section id="viewContatos" class="hidden space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div class="flex items-center gap-2">
+              <button id="tabContatosTodos" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white transition">Todos</button>
+              <button id="tabContatosClientes" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-200 transition">Clientes</button>
+              <button id="tabContatosFornecedores" class="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-200 transition">Fornecedores</button>
+            </div>
+            <button id="btnNovoContato" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Novo Cadastro
+            </button>
+          </div>
+
+          <!-- Cards Grid -->
+          <div id="contatosGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Injected via JS -->
+          </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- VIEW 5: RELATÓRIOS & IMPRESSÃO -->
+        <!-- ========================================== -->
+        <section id="viewRelatorios" class="hidden space-y-6">
+          
+          <!-- Filter & Configuration Card (Hidden during print) -->
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm no-print space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                </span>
+                <div>
+                  <h3 class="font-bold text-sm text-slate-800">Filtros do Relatório Financeiro</h3>
+                  <p class="text-xs text-slate-500">Defina o período, cliente/fornecedor e tipo para emissão e impressão</p>
+                </div>
+              </div>
+
+              <!-- Print Action Button -->
+              <div class="flex items-center gap-2">
+                <button id="btnExportCSV" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 border border-slate-200">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                  Exportar CSV
+                </button>
+                <button id="btnPrintReport" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition flex items-center gap-2 shadow-md shadow-amber-600/30">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                  Imprimir / Salvar PDF
+                </button>
+              </div>
+            </div>
+
+            <!-- Controls Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+              
+              <!-- Tipo de Relatório -->
+              <div>
+                <label for="repTipo" class="block font-semibold text-slate-700 mb-1.5">Tipo de Lançamento</label>
+                <select id="repTipo" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500">
+                  <option value="todos">Todos (Pagar e Receber)</option>
+                  <option value="pagar">Apenas Contas a Pagar</option>
+                  <option value="receber">Apenas Contas a Receber</option>
+                </select>
+              </div>
+
+              <!-- Entidade: Cliente ou Fornecedor -->
+              <div>
+                <label for="repEntidade" class="block font-semibold text-slate-700 mb-1.5">Cliente / Fornecedor</label>
+                <select id="repEntidade" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500">
+                  <option value="todos">Todos (Clientes e Fornecedores)</option>
+                  <!-- Populated via JS -->
+                </select>
+              </div>
+
+              <!-- Data Inicial -->
+              <div>
+                <label for="repDataInicio" class="block font-semibold text-slate-700 mb-1.5">Data Inicial</label>
+                <input type="date" id="repDataInicio" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500">
+              </div>
+
+              <!-- Data Final -->
+              <div>
+                <label for="repDataFim" class="block font-semibold text-slate-700 mb-1.5">Data Final</label>
+                <input type="date" id="repDataFim" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500">
+              </div>
+
+              <!-- Status -->
+              <div>
+                <label for="repStatus" class="block font-semibold text-slate-700 mb-1.5">Status dos Títulos</label>
+                <select id="repStatus" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500">
+                  <option value="todos">Todos os Status</option>
+                  <option value="pendente">Apenas Pendentes</option>
+                  <option value="baixado">Apenas Baixados (Pagos/Recebidos)</option>
+                  <option value="atrasado">Apenas Atrasados</option>
+                </select>
+              </div>
+
+              <!-- Agrupamento -->
+              <div>
+                <label for="repAgrupamento" class="block font-semibold text-slate-700 mb-1.5">Agrupar Por</label>
+                <select id="repAgrupamento" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-500">
+                  <option value="nenhum">Sem Agrupamento (Cronológico)</option>
+                  <option value="entidade">Por Cliente / Fornecedor</option>
+                  <option value="categoria">Por Categoria</option>
+                  <option value="status">Por Status</option>
+                </select>
+              </div>
+
+              <!-- Período Rápido -->
+              <div class="sm:col-span-2">
+                <label class="block font-semibold text-slate-700 mb-1.5">Atalhos de Período</label>
+                <div class="flex flex-wrap gap-1.5">
+                  <button type="button" class="btn-period-quick px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-medium" data-period="mes-atual">Este Mês</button>
+                  <button type="button" class="btn-period-quick px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-medium" data-period="mes-passado">Mês Passado</button>
+                  <button type="button" class="btn-period-quick px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-medium" data-period="proximo-mes">Próximo Mês</button>
+                  <button type="button" class="btn-period-quick px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-medium" data-period="ano-atual">Ano Atual</button>
+                  <button type="button" class="btn-period-quick px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] font-medium" data-period="todos">Todo o Histórico</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PRINTABLE REPORT SHEET / DOCUMENT CONTAINER -->
+          <div id="printableReportArea" class="bg-white rounded-xl p-8 border border-slate-200 shadow-md print-container">
+            
+            <!-- Report Header -->
+            <div class="border-b-2 border-slate-800 pb-5 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="w-7 h-7 rounded bg-slate-900 text-white font-bold text-sm flex items-center justify-center">F$</span>
+                  <h2 class="text-xl font-black text-slate-900 uppercase tracking-tight">RELATÓRIO FINANCEIRO GERENCIAL</h2>
+                </div>
+                <p class="text-xs text-slate-600 font-medium" id="reportCompanyInfo">FluxoMaster Gestão Financeira LTDA • CNPJ: 12.345.678/0001-90</p>
+                <p class="text-xs text-slate-500 mt-1 font-semibold" id="reportSubtitleInfo">Período: 01/10/2026 a 31/10/2026</p>
+              </div>
+              <div class="text-right text-xs text-slate-500">
+                <p><span class="font-semibold text-slate-700">Data de Emissão:</span> <span id="reportEmissionDate">30/10/2026 10:18</span></p>
+                <p><span class="font-semibold text-slate-700">Entidade Selecionada:</span> <span id="reportEntityTag">Todas</span></p>
+                <p><span class="font-semibold text-slate-700">Filtro de Status:</span> <span id="reportStatusTag">Todos</span></p>
+              </div>
+            </div>
+
+            <!-- Report Summary Executive Cards (Print friendly) -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <div class="print-card rounded-lg p-3 border border-slate-200 bg-slate-50">
+                <p class="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Total a Receber</p>
+                <p id="repKpiReceber" class="text-base sm:text-lg font-black text-emerald-700 mt-0.5">R$ 0,00</p>
+                <p id="repKpiRecebidoSub" class="text-[10px] text-slate-500">Recebido: R$ 0,00</p>
+              </div>
+
+              <div class="print-card rounded-lg p-3 border border-slate-200 bg-slate-50">
+                <p class="text-[10px] font-bold text-rose-800 uppercase tracking-wider">Total a Pagar</p>
+                <p id="repKpiPagar" class="text-base sm:text-lg font-black text-rose-700 mt-0.5">R$ 0,00</p>
+                <p id="repKpiPagoSub" class="text-[10px] text-slate-500">Pago: R$ 0,00</p>
+              </div>
+
+              <div class="print-card rounded-lg p-3 border border-slate-200 bg-slate-50">
+                <p class="text-[10px] font-bold text-blue-800 uppercase tracking-wider">Saldo Líquido Previsto</p>
+                <p id="repKpiSaldoPrevisto" class="text-base sm:text-lg font-black text-blue-700 mt-0.5">R$ 0,00</p>
+                <p class="text-[10px] text-slate-500">Receber - Pagar</p>
+              </div>
+
+              <div class="print-card rounded-lg p-3 border border-slate-200 bg-slate-50">
+                <p class="text-[10px] font-bold text-indigo-800 uppercase tracking-wider">Saldo Realizado (Caixa)</p>
+                <p id="repKpiSaldoRealizado" class="text-base sm:text-lg font-black text-indigo-700 mt-0.5">R$ 0,00</p>
+                <p class="text-[10px] text-slate-500">Efetivamente liquidado</p>
+              </div>
+            </div>
+
+            <!-- Report Table Container -->
+            <div id="reportContentContainer" class="space-y-6">
+              <!-- Injected dynamically with grouped or flat tables -->
+            </div>
+
+            <!-- Report Signatures & Print Footer (Only on print) -->
+            <div class="mt-12 pt-8 border-t border-slate-300 page-break-inside-avoid print-only hidden">
+              <div class="grid grid-cols-2 gap-8 text-center text-xs">
+                <div>
+                  <div class="border-b border-slate-400 w-3/4 mx-auto mb-1"></div>
+                  <p class="font-bold text-slate-800">Responsável Financeiro</p>
+                  <p class="text-slate-500 text-[10px]">Departamento Financeiro / Controladoria</p>
+                </div>
+                <div>
+                  <div class="border-b border-slate-400 w-3/4 mx-auto mb-1"></div>
+                  <p class="font-bold text-slate-800">Diretoria / Gestão</p>
+                  <p class="text-slate-500 text-[10px]">Visto de Auditoria e Aprovação</p>
+                </div>
+              </div>
+              <div class="mt-8 text-center text-[9px] text-slate-400">
+                Relatório emitido através do FluxoMaster Gestão Financeira. Documento para conferência interna.
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: CONTA A PAGAR (CRIAR / EDITAR) -->
+  <!-- ========================================== -->
+  <div id="modalPagar" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto no-print">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
+      <div class="bg-rose-600 px-6 py-4 text-white flex items-center justify-between">
+        <h3 id="modalPagarTitle" class="font-bold text-base flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Nova Conta a Pagar
+        </h3>
+        <button id="modalPagarClose" class="text-rose-200 hover:text-white transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="formPagar" class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="pagarId">
+
+        <div>
+          <label for="pagarDescricao" class="block font-semibold text-slate-700 mb-1">Descrição do Título *</label>
+          <input type="text" id="pagarDescricao" required placeholder="Ex: Aluguel Escritório, Energia Elétrica, Compra de Peças" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="pagarFornecedor" class="block font-semibold text-slate-700 mb-1">Fornecedor / Beneficiário *</label>
+            <input list="listFornecedores" id="pagarFornecedor" required placeholder="Selecione ou digite novo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500">
+            <datalist id="listFornecedores"></datalist>
+          </div>
+          <div>
+            <label for="pagarCategoria" class="block font-semibold text-slate-700 mb-1">Categoria *</label>
+            <select id="pagarCategoria" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500">
+              <option value="Fornecedores / Matéria-Prima">Fornecedores / Matéria-Prima</option>
+              <option value="Aluguel & Condomínio">Aluguel & Condomínio</option>
+              <option value="Energia, Água & Telefonia">Energia, Água & Telefonia</option>
+              <option value="Salários & Encargos">Salários & Encargos</option>
+              <option value="Impostos & Tributos">Impostos & Tributos</option>
+              <option value="Serviços Terceirizados">Serviços Terceirizados</option>
+              <option value="Software & Tecnologia">Software & Tecnologia</option>
+              <option value="Manutenção & Operação">Manutenção & Operação</option>
+              <option value="Outras Despesas">Outras Despesas</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="pagarValor" class="block font-semibold text-slate-700 mb-1">Valor (R$) *</label>
+            <input type="number" step="0.01" min="0.01" id="pagarValor" required placeholder="0,00" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-rose-500">
+          </div>
+          <div>
+            <label for="pagarVencimento" class="block font-semibold text-slate-700 mb-1">Data de Vencimento *</label>
+            <input type="date" id="pagarVencimento" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="pagarStatus" class="block font-semibold text-slate-700 mb-1">Status Atual</label>
+            <select id="pagarStatus" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500">
+              <option value="pendente">Pendente</option>
+              <option value="pago">Já Pago (Liquidado)</option>
+            </select>
+          </div>
+          <div id="fieldPagarDataPagamento" class="hidden">
+            <label for="pagarDataPagamento" class="block font-semibold text-slate-700 mb-1">Data do Pagamento</label>
+            <input type="date" id="pagarDataPagamento" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="pagarForma" class="block font-semibold text-slate-700 mb-1">Forma de Pagamento</label>
+            <select id="pagarForma" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500">
+              <option value="Boleto Bancário">Boleto Bancário</option>
+              <option value="PIX">PIX</option>
+              <option value="Transferência (TED/DOC)">Transferência (TED/DOC)</option>
+              <option value="Cartão de Crédito">Cartão de Crédito</option>
+              <option value="Débito Automático">Débito Automático</option>
+              <option value="Dinheiro">Dinheiro</option>
+            </select>
+          </div>
+          <div>
+            <label for="pagarDocumento" class="block font-semibold text-slate-700 mb-1">Nº Nota Fiscal / Documento</label>
+            <input type="text" id="pagarDocumento" placeholder="Ex: NF-e 4920" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500">
+          </div>
+        </div>
+
+        <div>
+          <label for="pagarObs" class="block font-semibold text-slate-700 mb-1">Observações</label>
+          <textarea id="pagarObs" rows="2" placeholder="Detalhes adicionais, chave PIX, conta bancária..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-rose-500"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 flex justify-end gap-2">
+          <button type="button" id="btnCancelPagar" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg font-medium transition">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold transition shadow-md shadow-rose-600/30">Salvar Conta a Pagar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: CONTA A RECEBER (CRIAR / EDITAR) -->
+  <!-- ========================================== -->
+  <div id="modalReceber" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto no-print">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
+      <div class="bg-emerald-600 px-6 py-4 text-white flex items-center justify-between">
+        <h3 id="modalReceberTitle" class="font-bold text-base flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Nova Conta a Receber
+        </h3>
+        <button id="modalReceberClose" class="text-emerald-200 hover:text-white transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="formReceber" class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="receberId">
+
+        <div>
+          <label for="receberDescricao" class="block font-semibold text-slate-700 mb-1">Descrição do Título *</label>
+          <input type="text" id="receberDescricao" required placeholder="Ex: Venda de Mercadorias, Prestação de Serviços, Mensalidade" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="receberCliente" class="block font-semibold text-slate-700 mb-1">Cliente / Pagador *</label>
+            <input list="listClientes" id="receberCliente" required placeholder="Selecione ou digite novo" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
+            <datalist id="listClientes"></datalist>
+          </div>
+          <div>
+            <label for="receberCategoria" class="block font-semibold text-slate-700 mb-1">Categoria *</label>
+            <select id="receberCategoria" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
+              <option value="Venda de Produtos">Venda de Produtos</option>
+              <option value="Prestação de Serviços">Prestação de Serviços</option>
+              <option value="Contrato Recorrente / Mensalidade">Contrato Recorrente / Mensalidade</option>
+              <option value="Consultoria & Projetos">Consultoria & Projetos</option>
+              <option value="Comissões & Bonificações">Comissões & Bonificações</option>
+              <option value="Rendimentos Financeiros">Rendimentos Financeiros</option>
+              <option value="Outras Receitas">Outras Receitas</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="receberValor" class="block font-semibold text-slate-700 mb-1">Valor (R$) *</label>
+            <input type="number" step="0.01" min="0.01" id="receberValor" required placeholder="0,00" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div>
+            <label for="receberVencimento" class="block font-semibold text-slate-700 mb-1">Data de Vencimento *</label>
+            <input type="date" id="receberVencimento" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="receberStatus" class="block font-semibold text-slate-700 mb-1">Status Atual</label>
+            <select id="receberStatus" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
+              <option value="pendente">Pendente</option>
+              <option value="recebido">Já Recebido (Liquidado)</option>
+            </select>
+          </div>
+          <div id="fieldReceberDataRecebimento" class="hidden">
+            <label for="receberDataRecebimento" class="block font-semibold text-slate-700 mb-1">Data do Recebimento</label>
+            <input type="date" id="receberDataRecebimento" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="receberForma" class="block font-semibold text-slate-700 mb-1">Forma de Recebimento</label>
+            <select id="receberForma" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
+              <option value="PIX">PIX</option>
+              <option value="Boleto Bancário">Boleto Bancário</option>
+              <option value="Cartão de Crédito">Cartão de Crédito</option>
+              <option value="Cartão de Débito">Cartão de Débito</option>
+              <option value="Transferência Bancária">Transferência Bancária</option>
+              <option value="Dinheiro">Dinheiro</option>
+            </select>
+          </div>
+          <div>
+            <label for="receberDocumento" class="block font-semibold text-slate-700 mb-1">Nº Pedido / Fatura / NF</label>
+            <input type="text" id="receberDocumento" placeholder="Ex: FAT-8819" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <div>
+          <label for="receberObs" class="block font-semibold text-slate-700 mb-1">Observações</label>
+          <textarea id="receberObs" rows="2" placeholder="Termos de negociação, parcelamento..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 flex justify-end gap-2">
+          <button type="button" id="btnCancelReceber" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg font-medium transition">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition shadow-md shadow-emerald-600/30">Salvar Conta a Receber</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: BAIXA RÁPIDA (DAR BAIXA) -->
+  <!-- ========================================== -->
+  <div id="modalBaixa" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div id="modalBaixaHeader" class="px-6 py-4 text-white flex items-center justify-between bg-slate-800">
+        <h3 id="modalBaixaTitle" class="font-bold text-sm">Confirmar Baixa do Título</h3>
+        <button id="modalBaixaClose" class="text-slate-300 hover:text-white transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="formBaixa" class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="baixaId">
+        <input type="hidden" id="baixaTipo">
+
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <p id="baixaDescricao" class="font-semibold text-slate-800 text-sm"></p>
+          <p id="baixaEntidade" class="text-slate-600 mt-0.5"></p>
+          <p id="baixaValor" class="text-base font-bold text-slate-900 mt-1"></p>
+        </div>
+
+        <div>
+          <label for="baixaData" class="block font-semibold text-slate-700 mb-1">Data Efetiva da Baixa *</label>
+          <input type="date" id="baixaData" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div>
+          <label for="baixaForma" class="block font-semibold text-slate-700 mb-1">Forma Efetiva de Pagto / Recebto</label>
+          <select id="baixaForma" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-emerald-500">
+            <option value="PIX">PIX</option>
+            <option value="Transferência Bancária">Transferência Bancária</option>
+            <option value="Boleto Bancário">Boleto Bancário</option>
+            <option value="Cartão de Crédito">Cartão de Crédito</option>
+            <option value="Dinheiro">Dinheiro</option>
+          </select>
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 flex justify-end gap-2">
+          <button type="button" id="btnCancelBaixa" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg font-medium transition">Cancelar</button>
+          <button type="submit" id="btnConfirmBaixa" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition">Confirmar Baixa</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: CLIENTE / FORNECEDOR -->
+  <!-- ========================================== -->
+  <div id="modalContato" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-indigo-600 px-6 py-4 text-white flex items-center justify-between">
+        <h3 id="modalContatoTitle" class="font-bold text-sm">Novo Cadastro (Cliente / Fornecedor)</h3>
+        <button id="modalContatoClose" class="text-indigo-200 hover:text-white transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <form id="formContato" class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="contatoId">
+
+        <div>
+          <label for="contatoTipo" class="block font-semibold text-slate-700 mb-1">Tipo de Contato *</label>
+          <select id="contatoTipo" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500">
+            <option value="cliente">Cliente (Recebimentos)</option>
+            <option value="fornecedor">Fornecedor (Pagamentos)</option>
+            <option value="ambos">Ambos (Cliente & Fornecedor)</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="contatoNome" class="block font-semibold text-slate-700 mb-1">Nome Completo / Razão Social *</label>
+          <input type="text" id="contatoNome" required placeholder="Ex: Distribuidora Silva LTDA" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="contatoDocumento" class="block font-semibold text-slate-700 mb-1">CPF / CNPJ</label>
+            <input type="text" id="contatoDocumento" placeholder="00.000.000/0001-00" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label for="contatoTelefone" class="block font-semibold text-slate-700 mb-1">Telefone / WhatsApp</label>
+            <input type="text" id="contatoTelefone" placeholder="(00) 00000-0000" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label for="contatoEmail" class="block font-semibold text-slate-700 mb-1">E-mail</label>
+          <input type="email" id="contatoEmail" placeholder="financeiro@empresa.com.br" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <label for="contatoCidade" class="block font-semibold text-slate-700 mb-1">Cidade / UF</label>
+          <input type="text" id="contatoCidade" placeholder="Bento Gonçalves - RS" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 flex justify-end gap-2">
+          <button type="button" id="btnCancelContato" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg font-medium transition">Cancelar</button>
+          <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition">Salvar Cadastro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: OPÇÕES DE IMPRESSÃO / SALVAR PDF -->
+  <div id="modalPrintOptions" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="bg-amber-600 px-6 py-4 text-white flex items-center justify-between">
+        <h3 class="font-bold text-sm flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+          Imprimir / Exportar Relatório Financeiro
+        </h3>
+        <button id="modalPrintClose" class="text-amber-200 hover:text-white transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <p class="text-xs text-slate-600">Escolha como deseja emitir o seu relatório financeiro filtrado:</p>
+
+        <!-- Option 1: Baixar Arquivo PDF -->
+        <button id="btnOptionDownloadPDF" class="w-full p-4 rounded-xl border-2 border-emerald-200 bg-emerald-50/60 hover:bg-emerald-100/80 transition flex items-center justify-between text-left group shadow-sm">
+          <div class="flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-emerald-600/30">
+              PDF
+            </div>
+            <div>
+              <p class="font-bold text-slate-900 text-xs sm:text-sm">Baixar Arquivo PDF (.pdf)</p>
+              <p class="text-[11px] text-slate-500 mt-0.5">Gera e baixa o documento formatado para o seu computador</p>
+            </div>
+          </div>
+          <svg class="w-5 h-5 text-emerald-600 transform group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        </button>
+
+        <!-- Option 2: Imprimir / Nova Aba -->
+        <button id="btnOptionDirectPrint" class="w-full p-4 rounded-xl border-2 border-amber-200 bg-amber-50/60 hover:bg-amber-100/80 transition flex items-center justify-between text-left group shadow-sm">
+          <div class="flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-amber-600/30">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            </div>
+            <div>
+              <p class="font-bold text-slate-900 text-xs sm:text-sm">Imprimir no Navegador / Nova Aba</p>
+              <p class="text-[11px] text-slate-500 mt-0.5">Abre a visualização limpa de impressão da impressora (Ctrl+P)</p>
+            </div>
+          </div>
+          <svg class="w-5 h-5 text-amber-600 transform group-hover:translate-x-0.5 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </button>
+
+        <div class="pt-2 flex justify-end">
+          <button id="btnCancelPrintOptions" class="px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-lg text-xs font-medium transition">
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ZERAR DADOS GERAIS -->
+  <div id="modalZerar" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200 p-6 text-center space-y-4">
+      <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </div>
+      <div>
+        <h3 class="font-bold text-slate-900 text-base">Zerar Todos os Dados?</h3>
+        <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+          Esta ação apagará <strong>todas as contas a pagar, contas a receber e clientes/fornecedores</strong> cadastrados. O sistema voltará para o estado inicial limpo (R$ 0,00).
+        </p>
+      </div>
+      <div class="flex justify-center gap-2 pt-2">
+        <button id="btnCancelZerar" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-semibold transition">Cancelar</button>
+        <button id="btnConfirmZerar" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition shadow-md shadow-rose-600/30">Sim, Zerar Tudo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRMAÇÃO DE EXCLUSÃO -->
+  <!-- ========================================== -->
+  <div id="modalDelete" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200 p-6 text-center space-y-4">
+      <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 mx-auto flex items-center justify-center">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </div>
+      <div>
+        <h3 class="font-bold text-slate-800 text-sm">Excluir Lançamento?</h3>
+        <p class="text-xs text-slate-500 mt-1" id="deletePromptText">Esta ação é permanente e removerá o título financeiro.</p>
+      </div>
+      <div class="flex justify-center gap-2 pt-2">
+        <button id="btnCancelDelete" class="px-4 py-2 border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-semibold">Cancelar</button>
+        <button id="btnConfirmDelete" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold">Sim, Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- JAVASCRIPT LOGIC -->
+  <!-- ========================================== -->
+  <script>
+    // --- STORAGE KEYS & INITIAL DEMO DATA ---
+    const STORAGE_KEY_PAGAR = 'fluxomaster_pagar_v2';
+    const STORAGE_KEY_RECEBER = 'fluxomaster_receber_v2';
+    const STORAGE_KEY_CONTATOS = 'fluxomaster_contatos_v2';
+
+    const TODAY_STR = '2026-10-30';
+
+    // Default Contacts
+    const DEMO_CONTATOS = [
+      // Demo data
+
+      { id: 'c1', tipo: 'fornecedor', nome: 'Imobiliária Central', documento: '14.281.990/0001-34', telefone: '(54) 3452-1000', email: 'contato@imobcentral.com.br', cidade: 'Bento Gonçalves - RS' },
+      { id: 'c2', tipo: 'fornecedor', nome: 'Companhia Elétrica RGE', documento: '02.016.444/0001-56', telefone: '0800 970 0900', email: 'atendimento@rge-rs.com.br', cidade: 'Caxias do Sul - RS' },
+      { id: 'c3', tipo: 'fornecedor', nome: 'Distribuidora Serra Gaúcha', documento: '19.882.331/0001-12', telefone: '(54) 3451-2290', email: 'vendas@serragaucha.com.br', cidade: 'Bento Gonçalves - RS' },
+      { id: 'c4', tipo: 'fornecedor', nome: 'Serviços Contábeis Exato', documento: '08.441.552/0001-90', telefone: '(54) 3454-9988', email: 'fiscal@exatocontabil.com.br', cidade: 'Bento Gonçalves - RS' },
+      { id: 'c5', tipo: 'fornecedor', nome: 'Fibra Óptica Telecom', documento: '05.331.229/0001-88', telefone: '(54) 3055-4000', email: 'suporte@fibratelecom.com.br', cidade: 'Garibaldi - RS' },
+      
+      { id: 'c6', tipo: 'cliente', nome: 'Supermercado Nova Aliança', documento: '21.554.890/0001-78', telefone: '(54) 3453-8800', email: 'compras@supernovaalianca.com.br', cidade: 'Bento Gonçalves - RS' },
+      { id: 'c7', tipo: 'cliente', nome: 'Clínica Bem Viver Saúde', documento: '18.234.991/0001-45', telefone: '(54) 3451-7766', email: 'financeiro@bemviversaude.com.br', cidade: 'Bento Gonçalves - RS' },
+      { id: 'c8', tipo: 'cliente', nome: 'Construtora Vale dos Vinhedos', documento: '09.332.118/0001-99', telefone: '(54) 3455-1200', email: 'suprimentos@construtoravale.com.br', cidade: 'Monte Belo do Sul - RS' },
+      { id: 'c9', tipo: 'cliente', nome: 'Restaurante & Vineria Colonial', documento: '29.441.229/0001-01', telefone: '(54) 3458-3000', email: 'adm@vineriacolonial.com.br', cidade: 'Garibaldi - RS' },
+      { id: 'c10', tipo: 'cliente', nome: 'Tech Inovação Digital', documento: '33.119.442/0001-50', telefone: '(51) 3344-9911', email: 'pagamentos@techinovacao.com.br', cidade: 'Porto Alegre - RS' }
+    ];
+
+    // Default Contas a Pagar
+    const DEMO_PAGAR = [
+      // Demo data
+
+      { id: 'p1', descricao: 'Aluguel Pavilhão Comercial', fornecedor: 'Imobiliária Central', categoria: 'Aluguel & Condomínio', valor: 3800.00, vencimento: '2026-10-05', status: 'pago', dataPagamento: '2026-10-04', forma: 'Boleto Bancário', documento: 'ALUG-1026', obs: 'Pago com desconto de pontualidade' },
+      { id: 'p2', descricao: 'Energia Elétrica Outubro', fornecedor: 'Companhia Elétrica RGE', categoria: 'Energia, Água & Telefonia', valor: 1420.50, vencimento: '2026-10-15', status: 'pago', dataPagamento: '2026-10-15', forma: 'PIX', documento: 'UC-884920', obs: 'Débito automático via PIX' },
+      { id: 'p3', descricao: 'Honorários Contábeis e Fiscais', fornecedor: 'Serviços Contábeis Exato', categoria: 'Serviços Terceirizados', valor: 1250.00, vencimento: '2026-10-20', status: 'pago', dataPagamento: '2026-10-19', forma: 'Transferência (TED/DOC)', documento: 'NFS-2026/89', obs: 'Ref. competência 09/2026' },
+      { id: 'p4', descricao: 'Fornecimento Insumos Embalagens', fornecedor: 'Distribuidora Serra Gaúcha', categoria: 'Fornecedores / Matéria-Prima', valor: 4500.00, vencimento: '2026-10-28', status: 'pendente', dataPagamento: '', forma: 'Boleto Bancário', documento: 'NF-e 18290', obs: 'Aguardando liberação de fluxo' },
+      { id: 'p5', descricao: 'Link Internet Fibra Dedicado', fornecedor: 'Fibra Óptica Telecom', categoria: 'Energia, Água & Telefonia', valor: 350.00, vencimento: '2026-10-30', status: 'pendente', dataPagamento: '', forma: 'Boleto Bancário', documento: 'FAT-9901', obs: 'Vence hoje' },
+      { id: 'p6', descricao: 'Parcela 02/03 Renovação Seguro Frota', fornecedor: 'Distribuidora Serra Gaúcha', categoria: 'Manutenção & Operação', valor: 890.00, vencimento: '2026-11-05', status: 'pendente', dataPagamento: '', forma: 'Boleto Bancário', documento: 'AP-55421', obs: 'Vencimento próximo mês' },
+      { id: 'p7', descricao: 'Licença Software ERP em Nuvem', fornecedor: 'Serviços Contábeis Exato', categoria: 'Software & Tecnologia', valor: 650.00, vencimento: '2026-11-10', status: 'pendente', dataPagamento: '', forma: 'Cartão de Crédito', documento: 'ASSIN-908', obs: 'Cobrança mensal recorrente' },
+      { id: 'p8', descricao: 'Manutenção Preventiva Compressores', fornecedor: 'Distribuidora Serra Gaúcha', categoria: 'Manutenção & Operação', valor: 920.00, vencimento: '2026-09-25', status: 'pago', dataPagamento: '2026-09-25', forma: 'PIX', documento: 'OS-441', obs: 'Mês anterior' }
+    ];
+
+    // Default Contas a Receber
+    const DEMO_RECEBER = [
+      // Demo data
+
+      { id: 'r1', descricao: 'Fornecimento Lote Especial Alimentos', cliente: 'Supermercado Nova Aliança', categoria: 'Venda de Produtos', valor: 12450.00, vencimento: '2026-10-10', status: 'recebido', dataRecebimento: '2026-10-10', forma: 'PIX', documento: 'NF-e 3410', obs: 'Liquidado na data' },
+      { id: 'r2', descricao: 'Prestação de Consultoria de Processos', cliente: 'Clínica Bem Viver Saúde', categoria: 'Prestação de Serviços', valor: 4800.00, vencimento: '2026-10-18', status: 'recebido', dataRecebimento: '2026-10-18', forma: 'Transferência Bancária', documento: 'NFS-512', obs: 'Recebido em conta corrente' },
+      { id: 'r3', descricao: 'Venda Estruturas Metálicas Módulo 1', cliente: 'Construtora Vale dos Vinhedos', categoria: 'Venda de Produtos', valor: 18500.00, vencimento: '2026-10-25', status: 'recebido', dataRecebimento: '2026-10-26', forma: 'Boleto Bancário', documento: 'NF-e 3422', obs: 'Liquidado com 1 dia de tolerância' },
+      { id: 'r4', descricao: 'Mensalidade Manutenção Contratual', cliente: 'Restaurante & Vineria Colonial', categoria: 'Contrato Recorrente / Mensalidade', valor: 2200.00, vencimento: '2026-10-29', status: 'pendente', dataRecebimento: '', forma: 'Boleto Bancário', documento: 'FAT-1029', obs: 'Boleto emitido banco Itaú' },
+      { id: 'r5', descricao: 'Desenvolvimento Módulo Integração API', cliente: 'Tech Inovação Digital', categoria: 'Consultoria & Projetos', valor: 7500.00, vencimento: '2026-10-30', status: 'pendente', dataRecebimento: '', forma: 'PIX', documento: 'NF-e 3430', obs: 'Vence hoje' },
+      { id: 'r6', descricao: 'Venda Estruturas Metálicas Módulo 2', cliente: 'Construtora Vale dos Vinhedos', categoria: 'Venda de Produtos', valor: 18500.00, vencimento: '2026-11-15', status: 'pendente', dataRecebimento: '', forma: 'Boleto Bancário', documento: 'NF-e 3450', obs: 'Parcela 2 de 3' },
+      { id: 'r7', descricao: 'Fornecimento Reposição Semanal', cliente: 'Supermercado Nova Aliança', categoria: 'Venda de Produtos', valor: 6300.00, vencimento: '2026-11-20', status: 'pendente', dataRecebimento: '', forma: 'PIX', documento: 'NF-e 3465', obs: 'Previsão confirmada pelo comprador' },
+      { id: 'r8', descricao: 'Consultoria Auditoria Trimestral', cliente: 'Clínica Bem Viver Saúde', categoria: 'Prestação de Serviços', valor: 3900.00, vencimento: '2026-09-20', status: 'recebido', dataRecebimento: '2026-09-20', forma: 'PIX', documento: 'NFS-480', obs: 'Recebido mês anterior' }
+    ];
+
+        // Initial empty data (Zeroed)
+    const INITIAL_CONTATOS = [];
+    const INITIAL_PAGAR = [];
+    const INITIAL_RECEBER = [];
+
+    // --- STATE MANAGEMENT ---
+    let state = {
+      contatos: [],
+      pagar: [],
+      receber: [],
+      currentTab: 'dashboard',
+      contatosFilter: 'todos',
+      deleteTarget: null
+    };
+
+    // Safe LocalStorage helpers
+    function loadState() {
+      // Clear legacy demo keys if present
+      try {
+        localStorage.removeItem('fluxomaster_pagar_v1');
+        localStorage.removeItem('fluxomaster_receber_v1');
+        localStorage.removeItem('fluxomaster_contatos_v1');
+      } catch (e) {}
+      try {
+        const storedContatos = localStorage.getItem(STORAGE_KEY_CONTATOS);
+        const storedPagar = localStorage.getItem(STORAGE_KEY_PAGAR);
+        const storedReceber = localStorage.getItem(STORAGE_KEY_RECEBER);
+
+        state.contatos = storedContatos ? JSON.parse(storedContatos) : [...INITIAL_CONTATOS];
+        state.pagar = storedPagar ? JSON.parse(storedPagar) : [...INITIAL_PAGAR];
+        state.receber = storedReceber ? JSON.parse(storedReceber) : [...INITIAL_RECEBER];
+      } catch (err) {
+        state.contatos = [...INITIAL_CONTATOS];
+        state.pagar = [...INITIAL_PAGAR];
+        state.receber = [...INITIAL_RECEBER];
+      }
+      refreshDerivedStatuses();
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY_CONTATOS, JSON.stringify(state.contatos));
+        localStorage.setItem(STORAGE_KEY_PAGAR, JSON.stringify(state.pagar));
+        localStorage.setItem(STORAGE_KEY_RECEBER, JSON.stringify(state.receber));
+      } catch (err) {
+        // silent fail
+      }
+    }
+
+    // Refresh overdue tags dynamically based on TODAY_STR
+    function refreshDerivedStatuses() {
+      state.pagar.forEach(item => {
+        if (item.status !== 'pago') {
+          item._isAtrasado = (item.vencimento < TODAY_STR);
+        } else {
+          item._isAtrasado = false;
+        }
+      });
+
+      state.receber.forEach(item => {
+        if (item.status !== 'recebido') {
+          item._isAtrasado = (item.vencimento < TODAY_STR);
+        } else {
+          item._isAtrasado = false;
+        }
+      });
+    }
+
+    // --- UTILITIES ---
+    function formatMoney(value) {
+      const num = Number(value) || 0;
+      return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      const parts = dateStr.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return dateStr;
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-600 text-white',
+        danger: 'bg-rose-600 text-white',
+        info: 'bg-slate-800 text-white'
+      };
+      toast.className = `px-4 py-3 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 transform transition-all duration-300 pointer-events-auto ${colors[type] || colors.info}`;
+      toast.innerHTML = `
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // --- CHART INSTANCES ---
+    let chartFluxoInstance = null;
+    let chartCatInstance = null;
+
+    function renderCharts() {
+      // 1. Monthly Flow Chart
+      const ctxFluxo = document.getElementById('chartFluxoMes');
+      if (ctxFluxo) {
+        if (chartFluxoInstance) chartFluxoInstance.destroy();
+
+        const months = ['08', '09', '10', '11', '12'];
+        const monthLabels = ['Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+        const dataReceber = months.map(m => {
+          return state.receber
+            .filter(r => r.vencimento && r.vencimento.startsWith(`2026-${m}`))
+            .reduce((acc, cur) => acc + Number(cur.valor), 0);
+        });
+
+        const dataPagar = months.map(m => {
+          return state.pagar
+            .filter(p => p.vencimento && p.vencimento.startsWith(`2026-${m}`))
+            .reduce((acc, cur) => acc + Number(cur.valor), 0);
+        });
+
+        chartFluxoInstance = new Chart(ctxFluxo, {
+          type: 'bar',
+          data: {
+            labels: monthLabels,
+            datasets: [
+              {
+                label: 'Contas a Receber (R$)',
+                data: dataReceber,
+                backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                borderRadius: 6
+              },
+              {
+                label: 'Contas a Pagar (R$)',
+                data: dataPagar,
+                backgroundColor: 'rgba(244, 63, 94, 0.85)',
+                borderRadius: 6
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'top',
+                labels: { font: { size: 11, family: 'Inter' } }
+              },
+              tooltip: {
+                callbacks: {
+                  label: ctx => `${ctx.dataset.label}: ${formatMoney(ctx.raw)}`
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  font: { size: 10, family: 'Inter' },
+                  callback: val => 'R$ ' + Number(val).toLocaleString('pt-BR')
+                },
+                grid: { color: '#f1f5f9' }
+              },
+              x: {
+                ticks: { font: { size: 11, family: 'Inter' } },
+                grid: { display: false }
+              }
+            }
+          }
+        });
+      }
+
+      // 2. Categories Doughnut
+      const ctxCat = document.getElementById('chartCategorias');
+      if (ctxCat) {
+        if (chartCatInstance) chartCatInstance.destroy();
+
+        const catMap = {};
+        state.pagar.forEach(p => {
+          catMap[p.categoria] = (catMap[p.categoria] || 0) + Number(p.valor);
+        });
+
+        const catLabels = Object.keys(catMap);
+        const catValues = Object.values(catMap);
+
+        const colors = [
+          '#f43f5e', '#ec4899', '#8b5cf6', '#3b82f6', '#06b6d4',
+          '#10b981', '#f59e0b', '#64748b', '#6366f1'
+        ];
+
+        chartCatInstance = new Chart(ctxCat, {
+          type: 'doughnut',
+          data: {
+            labels: catLabels.length ? catLabels : ['Sem despesas'],
+            datasets: [{
+              data: catValues.length ? catValues : [1],
+              backgroundColor: catLabels.length ? colors.slice(0, catLabels.length) : ['#e2e8f0']
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: { font: { size: 10, family: 'Inter' }, boxWidth: 12 }
+              },
+              tooltip: {
+                callbacks: {
+                  label: ctx => `${ctx.label}: ${formatMoney(ctx.raw)}`
+                }
+              }
+            },
+            cutout: '65%'
+          }
+        });
+      }
+    }
+
+    // --- NAVIGATION TAB SWITCHER ---
+    function switchTab(tabName) {
+      state.currentTab = tabName;
+
+      const tabs = [
+        { id: 'navDashboard', view: 'viewDashboard', title: 'Visão Geral Financeira', subtitle: 'Resumo executivo do fluxo financeiro da sua empresa' },
+        { id: 'navPagar', view: 'viewPagar', title: 'Contas a Pagar', subtitle: 'Gestão de despesas, vencimentos de fornecedores e baixas' },
+        { id: 'navReceber', view: 'viewReceber', title: 'Contas a Receber', subtitle: 'Gestão de faturamento, recebíveis de clientes e cobranças' },
+        { id: 'navContatos', view: 'viewContatos', title: 'Clientes & Fornecedores', subtitle: 'Cadastro unificado de contatos comerciais e histórico financeiro' },
+        { id: 'navRelatorios', view: 'viewRelatorios', title: 'Relatórios Financeiros & Impressão', subtitle: 'Emissão personalizada por período, cliente ou fornecedor para impressão ou PDF' }
+      ];
+
+      tabs.forEach(t => {
+        const btn = document.getElementById(t.id);
+        const viewEl = document.getElementById(t.view);
+        const isActive = (t.id.toLowerCase().includes(tabName.toLowerCase()));
+
+        if (isActive) {
+          btn.className = "nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-all bg-emerald-600 text-white shadow-md shadow-emerald-900/30";
+          viewEl.classList.remove('hidden');
+          document.getElementById('pageTitle').innerText = t.title;
+          document.getElementById('pageSubtitle').innerText = t.subtitle;
+        } else {
+          btn.className = "nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-all";
+          viewEl.classList.add('hidden');
+        }
+      });
+
+      renderCurrentView();
+    }
+
+    // --- POPULATE DATALISTS & DROPDOWNS ---
+    function updateDropdownOptions() {
+      const dlFornec = document.getElementById('listFornecedores');
+      const dlClient = document.getElementById('listClientes');
+      
+      const fornecedores = state.contatos.filter(c => c.tipo === 'fornecedor' || c.tipo === 'ambos');
+      const clientes = state.contatos.filter(c => c.tipo === 'cliente' || c.tipo === 'ambos');
+
+      dlFornec.innerHTML = fornecedores.map(f => `<option value="${f.nome}">`).join('');
+      dlClient.innerHTML = clientes.map(c => `<option value="${c.nome}">`).join('');
+
+      const selPagarFornec = document.getElementById('filterPagarFornecedor');
+      const currentSelPagar = selPagarFornec.value;
+      selPagarFornec.innerHTML = '<option value="todos">Fornecedor: Todos</option>' +
+        fornecedores.map(f => `<option value="${f.nome}" ${currentSelPagar === f.nome ? 'selected' : ''}>${f.nome}</option>`).join('');
+
+      const selReceberClient = document.getElementById('filterReceberCliente');
+      const currentSelReceber = selReceberClient.value;
+      selReceberClient.innerHTML = '<option value="todos">Cliente: Todos</option>' +
+        clientes.map(c => `<option value="${c.nome}" ${currentSelReceber === c.nome ? 'selected' : ''}>${c.nome}</option>`).join('');
+
+      const selRepEntidade = document.getElementById('repEntidade');
+      const currentRepEnt = selRepEntidade.value;
+      let repHtml = '<option value="todos">Todos (Clientes e Fornecedores)</option>';
+      repHtml += '<optgroup label="Clientes">';
+      clientes.forEach(c => {
+        repHtml += `<option value="${c.nome}" ${currentRepEnt === c.nome ? 'selected' : ''}>${c.nome}</option>`;
+      });
+      repHtml += '</optgroup><optgroup label="Fornecedores">';
+      fornecedores.forEach(f => {
+        repHtml += `<option value="${f.nome}" ${currentRepEnt === f.nome ? 'selected' : ''}>${f.nome}</option>`;
+      });
+      repHtml += '</optgroup>';
+      selRepEntidade.innerHTML = repHtml;
+    }
+
+    // --- RENDER VIEWS ---
+    function renderCurrentView() {
+      refreshDerivedStatuses();
+      updateBadges();
+      updateDropdownOptions();
+
+      if (state.currentTab === 'dashboard') {
+        renderDashboard();
+      } else if (state.currentTab === 'pagar') {
+        renderPagar();
+      } else if (state.currentTab === 'receber') {
+        renderReceber();
+      } else if (state.currentTab === 'contatos') {
+        renderContatos();
+      } else if (state.currentTab === 'relatorios') {
+        renderRelatorios();
+      }
+    }
+
+    function updateBadges() {
+      const pagarPend = state.pagar.filter(p => p.status === 'pendente').length;
+      const receberPend = state.receber.filter(r => r.status === 'pendente').length;
+
+      document.getElementById('badgePagarPendentes').innerText = pagarPend;
+      document.getElementById('badgeReceberPendentes').innerText = receberPend;
+    }
+
+    // 1. Dashboard View
+    function renderDashboard() {
+      let recPend = 0, recLiq = 0, recCount = 0;
+      state.receber.forEach(r => {
+        if (r.status === 'recebido') {
+          recLiq += Number(r.valor);
+        } else {
+          recPend += Number(r.valor);
+          recCount++;
+        }
+      });
+
+      let pagPend = 0, pagLiq = 0, pagCount = 0;
+      state.pagar.forEach(p => {
+        if (p.status === 'pago') {
+          pagLiq += Number(p.valor);
+        } else {
+          pagPend += Number(p.valor);
+          pagCount++;
+        }
+      });
+
+      const totalReceberGeral = recPend + recLiq;
+      const totalPagarGeral = pagPend + pagLiq;
+      const saldoPrevisto = totalReceberGeral - totalPagarGeral;
+      const saldoRealizado = recLiq - pagLiq;
+
+      document.getElementById('kpiReceberPendente').innerText = formatMoney(recPend);
+      document.getElementById('kpiReceberCount').innerText = `${recCount} pendentes`;
+      document.getElementById('kpiRecebidoTotal').innerText = `Recebido: ${formatMoney(recLiq)}`;
+
+      document.getElementById('kpiPagarPendente').innerText = formatMoney(pagPend);
+      document.getElementById('kpiPagarCount').innerText = `${pagCount} pendentes`;
+      document.getElementById('kpiPagoTotal').innerText = `Pago: ${formatMoney(pagLiq)}`;
+
+      const elPrevisto = document.getElementById('kpiSaldoPrevisto');
+      elPrevisto.innerText = formatMoney(saldoPrevisto);
+      elPrevisto.className = `text-2xl font-bold ${saldoPrevisto >= 0 ? 'text-blue-600' : 'text-rose-600'}`;
+
+      const elRealizado = document.getElementById('kpiSaldoRealizado');
+      elRealizado.innerText = formatMoney(saldoRealizado);
+      elRealizado.className = `text-2xl font-bold ${saldoRealizado >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+
+      // Alerts: Overdue & Due Today
+      const alertsContainer = document.getElementById('dashboardAlerts');
+      alertsContainer.innerHTML = '';
+
+      const vencidosPagar = state.pagar.filter(p => p.status === 'pendente' && p.vencimento < TODAY_STR);
+      const hojePagar = state.pagar.filter(p => p.status === 'pendente' && p.vencimento === TODAY_STR);
+      const hojeReceber = state.receber.filter(r => r.status === 'pendente' && r.vencimento === TODAY_STR);
+
+      if (vencidosPagar.length > 0) {
+        const totalVenc = vencidosPagar.reduce((acc, c) => acc + Number(c.valor), 0);
+        const alertDiv = document.createElement('div');
+        alertDiv.className = "bg-red-50 border-l-4 border-red-500 p-3.5 rounded-r-xl flex items-center justify-between text-xs text-red-800 shadow-sm";
+        alertDiv.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <span class="font-bold">⚠️ Atenção:</span>
+            <span>Você possui <strong>${vencidosPagar.length} contas a pagar em atraso</strong> totalizando <strong>${formatMoney(totalVenc)}</strong>.</span>
+          </div>
+          <button id="btnAlertVerAtrasados" class="font-semibold underline hover:text-red-950">Visualizar contas atrasadas</button>
+        `;
+        alertsContainer.appendChild(alertDiv);
+        document.getElementById('btnAlertVerAtrasados').addEventListener('click', () => {
+          switchTab('pagar');
+          document.getElementById('filterPagarStatus').value = 'atrasado';
+          renderPagar();
+        });
+      }
+
+      if (hojePagar.length > 0 || hojeReceber.length > 0) {
+        const alertHoje = document.createElement('div');
+        alertHoje.className = "bg-amber-50 border-l-4 border-amber-500 p-3.5 rounded-r-xl flex items-center justify-between text-xs text-amber-800 shadow-sm";
+        alertHoje.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <span class="font-bold">📅 Vencimentos de Hoje (${formatDate(TODAY_STR)}):</span>
+            <span>${hojePagar.length} conta(s) a pagar e ${hojeReceber.length} conta(s) a receber programadas para hoje.</span>
+          </div>
+          <span class="text-xs text-amber-700 font-semibold">Fique atento aos prazos bancários!</span>
+        `;
+        alertsContainer.appendChild(alertHoje);
+      }
+
+      // Upcoming Items List
+      const allUpcoming = [
+        ...state.pagar.filter(p => p.status === 'pendente').map(p => ({ ...p, tipoLanc: 'pagar' })),
+        ...state.receber.filter(r => r.status === 'pendente').map(r => ({ ...r, tipoLanc: 'receber' }))
+      ].sort((a, b) => (a.vencimento > b.vencimento ? 1 : -1)).slice(0, 5);
+
+      const tableBody = document.getElementById('upcomingTableBody');
+      if (allUpcoming.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="7" class="px-5 py-6 text-center text-slate-400">Nenhuma conta pendente para os próximos dias. Excelente!</td></tr>`;
+      } else {
+        tableBody.innerHTML = allUpcoming.map(item => {
+          const isPagar = item.tipoLanc === 'pagar';
+          const isAtrasado = item.vencimento < TODAY_STR;
+          const isHoje = item.vencimento === TODAY_STR;
+          
+          let statusBadge = '';
+          if (isAtrasado) {
+            statusBadge = '<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold text-[10px]">Atrasado</span>';
+          } else if (isHoje) {
+            statusBadge = '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold text-[10px]">Vence Hoje</span>';
+          } else {
+            statusBadge = '<span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold text-[10px]">A Vencer</span>';
+          }
+
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="px-5 py-3">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold ${isPagar ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">
+                  ${isPagar ? 'Pagar' : 'Receber'}
+                </span>
+              </td>
+              <td class="px-5 py-3 font-semibold ${isAtrasado ? 'text-red-600' : 'text-slate-700'}">${formatDate(item.vencimento)}</td>
+              <td class="px-5 py-3 font-medium text-slate-800">${item.fornecedor || item.cliente}</td>
+              <td class="px-5 py-3 text-slate-600">${item.descricao}</td>
+              <td class="px-5 py-3 font-bold ${isPagar ? 'text-rose-600' : 'text-emerald-600'}">${formatMoney(item.valor)}</td>
+              <td class="px-5 py-3">${statusBadge}</td>
+              <td class="px-5 py-3 text-right">
+                <button data-action="baixa" data-id="${item.id}" data-tipo="${item.tipoLanc}" class="btn-item-baixa px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition">
+                  Dar Baixa
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        tableBody.querySelectorAll('.btn-item-baixa').forEach(btn => {
+          btn.addEventListener('click', () => {
+            openModalBaixa(btn.dataset.id, btn.dataset.tipo);
+          });
+        });
+      }
+
+      renderCharts();
+    }
+
+    // 2. Contas a Pagar View
+    function renderPagar() {
+      const search = document.getElementById('filterPagarSearch').value.toLowerCase().trim();
+      const status = document.getElementById('filterPagarStatus').value;
+      const fornecedor = document.getElementById('filterPagarFornecedor').value;
+
+      let filtered = state.pagar.filter(item => {
+        if (search) {
+          const matchDesc = item.descricao.toLowerCase().includes(search);
+          const matchForn = item.fornecedor.toLowerCase().includes(search);
+          const matchDoc = (item.documento || '').toLowerCase().includes(search);
+          if (!matchDesc && !matchForn && !matchDoc) return false;
+        }
+
+        if (status === 'pendente' && item.status !== 'pendente') return false;
+        if (status === 'pago' && item.status !== 'pago') return false;
+        if (status === 'atrasado' && !(item.status === 'pendente' && item.vencimento < TODAY_STR)) return false;
+
+        if (fornecedor !== 'todos' && item.fornecedor !== fornecedor) return false;
+
+        return true;
+      });
+
+      filtered.sort((a, b) => (a.vencimento > b.vencimento ? 1 : -1));
+
+      let sumTot = 0, sumPend = 0, sumPago = 0, sumAtras = 0;
+      filtered.forEach(p => {
+        const val = Number(p.valor);
+        sumTot += val;
+        if (p.status === 'pago') {
+          sumPago += val;
+        } else {
+          sumPend += val;
+          if (p.vencimento < TODAY_STR) {
+            sumAtras += val;
+          }
+        }
+      });
+
+      document.getElementById('sumPagarTotal').innerText = formatMoney(sumTot);
+      document.getElementById('sumPagarPendente').innerText = formatMoney(sumPend);
+      document.getElementById('sumPagarPago').innerText = formatMoney(sumPago);
+      document.getElementById('sumPagarAtrasado').innerText = formatMoney(sumAtras);
+
+      const tableBody = document.getElementById('pagarTableBody');
+      if (filtered.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">Nenhum lançamento de conta a pagar encontrado com os filtros selecionados.</td></tr>`;
+        return;
+      }
+
+      tableBody.innerHTML = filtered.map(item => {
+        const isPago = item.status === 'pago';
+        const isAtrasado = !isPago && item.vencimento < TODAY_STR;
+        const isHoje = !isPago && item.vencimento === TODAY_STR;
+
+        let statusBadge = '';
+        if (isPago) {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Pago</span>';
+        } else if (isAtrasado) {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold text-[10px]">Atrasado</span>';
+        } else if (isHoje) {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold text-[10px]">Vence Hoje</span>';
+        } else {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[10px]">Pendente</span>';
+        }
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="px-4 py-3 font-semibold ${isAtrasado ? 'text-red-600' : 'text-slate-700'}">${formatDate(item.vencimento)}</td>
+            <td class="px-4 py-3 font-bold text-slate-900">${item.fornecedor}</td>
+            <td class="px-4 py-3 text-slate-700">
+              <div class="font-medium">${item.descricao}</div>
+              ${item.documento ? `<span class="text-[10px] text-slate-400">Doc: ${item.documento}</span>` : ''}
+            </td>
+            <td class="px-4 py-3 text-slate-500">${item.categoria}</td>
+            <td class="px-4 py-3 font-bold text-rose-600">${formatMoney(item.valor)}</td>
+            <td class="px-4 py-3">${statusBadge}</td>
+            <td class="px-4 py-3 text-slate-500">
+              ${isPago ? `<span class="text-emerald-700 font-semibold">${formatDate(item.dataPagamento)}</span><br><span class="text-[10px]">${item.forma || ''}</span>` : `<span class="text-slate-400">${item.forma || '-'}</span>`}
+            </td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+              ${!isPago ? `
+                <button data-action="baixa-pagar" data-id="${item.id}" title="Dar Baixa (Registrar Pagamento)" class="btn-action-baixa p-1.5 rounded hover:bg-emerald-50 text-emerald-600 font-semibold transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </button>
+              ` : `
+                <button data-action="estorno-pagar" data-id="${item.id}" title="Estornar Baixa" class="btn-action-estorno p-1.5 rounded hover:bg-amber-50 text-amber-600 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                </button>
+              `}
+              <button data-action="edit-pagar" data-id="${item.id}" title="Editar" class="btn-action-edit p-1.5 rounded hover:bg-slate-100 text-slate-600 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </button>
+              <button data-action="del-pagar" data-id="${item.id}" title="Excluir" class="btn-action-del p-1.5 rounded hover:bg-rose-50 text-rose-600 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      tableBody.querySelectorAll('.btn-action-baixa').forEach(b => b.addEventListener('click', () => openModalBaixa(b.dataset.id, 'pagar')));
+      tableBody.querySelectorAll('.btn-action-estorno').forEach(b => b.addEventListener('click', () => estornarBaixa(b.dataset.id, 'pagar')));
+      tableBody.querySelectorAll('.btn-action-edit').forEach(b => b.addEventListener('click', () => openModalPagar(b.dataset.id)));
+      tableBody.querySelectorAll('.btn-action-del').forEach(b => b.addEventListener('click', () => promptDelete('pagar', b.dataset.id)));
+    }
+
+    // 3. Contas a Receber View
+    function renderReceber() {
+      const search = document.getElementById('filterReceberSearch').value.toLowerCase().trim();
+      const status = document.getElementById('filterReceberStatus').value;
+      const cliente = document.getElementById('filterReceberCliente').value;
+
+      let filtered = state.receber.filter(item => {
+        if (search) {
+          const matchDesc = item.descricao.toLowerCase().includes(search);
+          const matchCli = item.cliente.toLowerCase().includes(search);
+          const matchDoc = (item.documento || '').toLowerCase().includes(search);
+          if (!matchDesc && !matchCli && !matchDoc) return false;
+        }
+
+        if (status === 'pendente' && item.status !== 'pendente') return false;
+        if (status === 'recebido' && item.status !== 'recebido') return false;
+        if (status === 'atrasado' && !(item.status === 'pendente' && item.vencimento < TODAY_STR)) return false;
+
+        if (cliente !== 'todos' && item.cliente !== cliente) return false;
+
+        return true;
+      });
+
+      filtered.sort((a, b) => (a.vencimento > b.vencimento ? 1 : -1));
+
+      let sumTot = 0, sumPend = 0, sumRec = 0, sumAtras = 0;
+      filtered.forEach(r => {
+        const val = Number(r.valor);
+        sumTot += val;
+        if (r.status === 'recebido') {
+          sumRec += val;
+        } else {
+          sumPend += val;
+          if (r.vencimento < TODAY_STR) {
+            sumAtras += val;
+          }
+        }
+      });
+
+      document.getElementById('sumReceberTotal').innerText = formatMoney(sumTot);
+      document.getElementById('sumReceberPendente').innerText = formatMoney(sumPend);
+      document.getElementById('sumReceberRecebido').innerText = formatMoney(sumRec);
+      document.getElementById('sumReceberAtrasado').innerText = formatMoney(sumAtras);
+
+      const tableBody = document.getElementById('receberTableBody');
+      if (filtered.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-slate-400">Nenhum lançamento de conta a receber encontrado com os filtros selecionados.</td></tr>`;
+        return;
+      }
+
+      tableBody.innerHTML = filtered.map(item => {
+        const isRec = item.status === 'recebido';
+        const isAtrasado = !isRec && item.vencimento < TODAY_STR;
+        const isHoje = !isRec && item.vencimento === TODAY_STR;
+
+        let statusBadge = '';
+        if (isRec) {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Recebido</span>';
+        } else if (isAtrasado) {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold text-[10px]">Atrasado</span>';
+        } else if (isHoje) {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold text-[10px]">Vence Hoje</span>';
+        } else {
+          statusBadge = '<span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold text-[10px]">Pendente</span>';
+        }
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="px-4 py-3 font-semibold ${isAtrasado ? 'text-red-600' : 'text-slate-700'}">${formatDate(item.vencimento)}</td>
+            <td class="px-4 py-3 font-bold text-slate-900">${item.cliente}</td>
+            <td class="px-4 py-3 text-slate-700">
+              <div class="font-medium">${item.descricao}</div>
+              ${item.documento ? `<span class="text-[10px] text-slate-400">Doc: ${item.documento}</span>` : ''}
+            </td>
+            <td class="px-4 py-3 text-slate-500">${item.categoria}</td>
+            <td class="px-4 py-3 font-bold text-emerald-600">${formatMoney(item.valor)}</td>
+            <td class="px-4 py-3">${statusBadge}</td>
+            <td class="px-4 py-3 text-slate-500">
+              ${isRec ? `<span class="text-emerald-700 font-semibold">${formatDate(item.dataRecebimento)}</span><br><span class="text-[10px]">${item.forma || ''}</span>` : `<span class="text-slate-400">${item.forma || '-'}</span>`}
+            </td>
+            <td class="px-4 py-3 text-right whitespace-nowrap">
+              ${!isRec ? `
+                <button data-action="baixa-receber" data-id="${item.id}" title="Dar Baixa (Registrar Recebimento)" class="btn-rec-baixa p-1.5 rounded hover:bg-emerald-50 text-emerald-600 font-semibold transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </button>
+              ` : `
+                <button data-action="estorno-receber" data-id="${item.id}" title="Estornar Baixa" class="btn-rec-estorno p-1.5 rounded hover:bg-amber-50 text-amber-600 transition">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                </button>
+              `}
+              <button data-action="edit-receber" data-id="${item.id}" title="Editar" class="btn-rec-edit p-1.5 rounded hover:bg-slate-100 text-slate-600 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </button>
+              <button data-action="del-receber" data-id="${item.id}" title="Excluir" class="btn-rec-del p-1.5 rounded hover:bg-rose-50 text-rose-600 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      tableBody.querySelectorAll('.btn-rec-baixa').forEach(b => b.addEventListener('click', () => openModalBaixa(b.dataset.id, 'receber')));
+      tableBody.querySelectorAll('.btn-rec-estorno').forEach(b => b.addEventListener('click', () => estornarBaixa(b.dataset.id, 'receber')));
+      tableBody.querySelectorAll('.btn-rec-edit').forEach(b => b.addEventListener('click', () => openModalReceber(b.dataset.id)));
+      tableBody.querySelectorAll('.btn-rec-del').forEach(b => b.addEventListener('click', () => promptDelete('receber', b.dataset.id)));
+    }
+
+    // 4. Clientes & Fornecedores View
+    function renderContatos() {
+      const grid = document.getElementById('contatosGrid');
+      let filtered = state.contatos;
+      if (state.contatosFilter === 'cliente') {
+        filtered = state.contatos.filter(c => c.tipo === 'cliente' || c.tipo === 'ambos');
+      } else if (state.contatosFilter === 'fornecedor') {
+        filtered = state.contatos.filter(c => c.tipo === 'fornecedor' || c.tipo === 'ambos');
+      }
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div class="col-span-3 text-center py-10 text-slate-400">Nenhum cadastro encontrado.</div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(c => {
+        const totalPagar = state.pagar.filter(p => p.fornecedor === c.nome).reduce((acc, cur) => acc + Number(cur.valor), 0);
+        const totalReceber = state.receber.filter(r => r.cliente === c.nome).reduce((acc, cur) => acc + Number(cur.valor), 0);
+
+        let typeBadge = '';
+        if (c.tipo === 'cliente') {
+          typeBadge = '<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Cliente</span>';
+        } else if (c.tipo === 'fornecedor') {
+          typeBadge = '<span class="bg-rose-100 text-rose-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Fornecedor</span>';
+        } else {
+          typeBadge = '<span class="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Cliente & Fornec.</span>';
+        }
+
+        return `
+          <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between hover:shadow transition">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <h4 class="font-bold text-slate-900 text-sm leading-snug">${c.nome}</h4>
+                ${typeBadge}
+              </div>
+              <div class="text-xs text-slate-500 space-y-1 mb-4">
+                ${c.documento ? `<p><strong>Doc:</strong> ${c.documento}</p>` : ''}
+                ${c.telefone ? `<p><strong>Tel:</strong> ${c.telefone}</p>` : ''}
+                ${c.email ? `<p><strong>Email:</strong> ${c.email}</p>` : ''}
+                ${c.cidade ? `<p><strong>Local:</strong> ${c.cidade}</p>` : ''}
+              </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+              <div class="text-xs">
+                ${totalReceber > 0 ? `<p class="text-emerald-700 font-semibold">A Receber: ${formatMoney(totalReceber)}</p>` : ''}
+                ${totalPagar > 0 ? `<p class="text-rose-700 font-semibold">A Pagar: ${formatMoney(totalPagar)}</p>` : ''}
+                ${totalReceber === 0 && totalPagar === 0 ? `<p class="text-slate-400">Sem lançamentos</p>` : ''}
+              </div>
+              <div class="flex items-center gap-1">
+                <button data-id="${c.id}" class="btn-contato-edit p-1 rounded text-slate-500 hover:text-slate-900 transition" title="Editar">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                <button data-id="${c.id}" class="btn-contato-del p-1 rounded text-slate-400 hover:text-rose-600 transition" title="Excluir">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      grid.querySelectorAll('.btn-contato-edit').forEach(b => b.addEventListener('click', () => openModalContato(b.dataset.id)));
+      grid.querySelectorAll('.btn-contato-del').forEach(b => b.addEventListener('click', () => promptDelete('contato', b.dataset.id)));
+    }
+
+    // 5. Relatórios & Impressão View
+    function renderRelatorios() {
+      const tipo = document.getElementById('repTipo').value;
+      const entidade = document.getElementById('repEntidade').value;
+      const dtInicio = document.getElementById('repDataInicio').value;
+      const dtFim = document.getElementById('repDataFim').value;
+      const statusFiltro = document.getElementById('repStatus').value;
+      const agrupamento = document.getElementById('repAgrupamento').value;
+
+      let periodTxt = 'Todo o Histórico';
+      if (dtInicio && dtFim) {
+        periodTxt = `${formatDate(dtInicio)} até ${formatDate(dtFim)}`;
+      } else if (dtInicio) {
+        periodTxt = `A partir de ${formatDate(dtInicio)}`;
+      } else if (dtFim) {
+        periodTxt = `Até ${formatDate(dtFim)}`;
+      }
+      document.getElementById('reportSubtitleInfo').innerText = `Período do Relatório: ${periodTxt}`;
+      document.getElementById('reportEntityTag').innerText = entidade === 'todos' ? 'Todas as Entidades' : entidade;
+      
+      const statusMap = { todos: 'Todos os Status', pendente: 'Apenas Pendentes', baixado: 'Apenas Baixados', atrasado: 'Apenas Atrasados' };
+      document.getElementById('reportStatusTag').innerText = statusMap[statusFiltro] || 'Todos';
+
+      const now = new Date();
+      document.getElementById('reportEmissionDate').innerText = `${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+
+      let itemsPagar = [];
+      let itemsReceber = [];
+
+      if (tipo === 'todos' || tipo === 'pagar') {
+        itemsPagar = state.pagar.filter(p => {
+          if (entidade !== 'todos' && p.fornecedor !== entidade) return false;
+          if (dtInicio && p.vencimento < dtInicio) return false;
+          if (dtFim && p.vencimento > dtFim) return false;
+
+          if (statusFiltro === 'pendente' && p.status !== 'pendente') return false;
+          if (statusFiltro === 'baixado' && p.status !== 'pago') return false;
+          if (statusFiltro === 'atrasado' && !(p.status === 'pendente' && p.vencimento < TODAY_STR)) return false;
+
+          return true;
+        }).map(p => ({ ...p, tipoLanc: 'pagar', pessoa: p.fornecedor }));
+      }
+
+      if (tipo === 'todos' || tipo === 'receber') {
+        itemsReceber = state.receber.filter(r => {
+          if (entidade !== 'todos' && r.cliente !== entidade) return false;
+          if (dtInicio && r.vencimento < dtInicio) return false;
+          if (dtFim && r.vencimento > dtFim) return false;
+
+          if (statusFiltro === 'pendente' && r.status !== 'pendente') return false;
+          if (statusFiltro === 'baixado' && r.status !== 'recebido') return false;
+          if (statusFiltro === 'atrasado' && !(r.status === 'pendente' && r.vencimento < TODAY_STR)) return false;
+
+          return true;
+        }).map(r => ({ ...r, tipoLanc: 'receber', pessoa: r.cliente }));
+      }
+
+      let totReceber = 0, totRecebido = 0;
+      itemsReceber.forEach(r => {
+        const val = Number(r.valor);
+        totReceber += val;
+        if (r.status === 'recebido') totRecebido += val;
+      });
+
+      let totPagar = 0, totPago = 0;
+      itemsPagar.forEach(p => {
+        const val = Number(p.valor);
+        totPagar += val;
+        if (p.status === 'pago') totPago += val;
+      });
+
+      const saldoPrev = totReceber - totPagar;
+      const saldoReal = totRecebido - totPago;
+
+      document.getElementById('repKpiReceber').innerText = formatMoney(totReceber);
+      document.getElementById('repKpiRecebidoSub').innerText = `Recebido: ${formatMoney(totRecebido)}`;
+
+      document.getElementById('repKpiPagar').innerText = formatMoney(totPagar);
+      document.getElementById('repKpiPagoSub').innerText = `Pago: ${formatMoney(totPago)}`;
+
+      const repElPrev = document.getElementById('repKpiSaldoPrevisto');
+      repElPrev.innerText = formatMoney(saldoPrev);
+      repElPrev.className = `text-base sm:text-lg font-black ${saldoPrev >= 0 ? 'text-blue-700' : 'text-rose-700'} mt-0.5`;
+
+      const repElReal = document.getElementById('repKpiSaldoRealizado');
+      repElReal.innerText = formatMoney(saldoReal);
+      repElReal.className = `text-base sm:text-lg font-black ${saldoReal >= 0 ? 'text-indigo-700' : 'text-rose-700'} mt-0.5`;
+
+      const allItems = [...itemsReceber, ...itemsPagar];
+
+      const container = document.getElementById('reportContentContainer');
+      if (allItems.length === 0) {
+        container.innerHTML = `
+          <div class="py-12 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+            <svg class="w-10 h-10 mx-auto text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <p class="font-semibold text-slate-600">Nenhum lançamento encontrado para os critérios selecionados.</p>
+            <p class="text-xs text-slate-400 mt-1">Altere o período, cliente/fornecedor ou status acima.</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (agrupamento === 'entidade') {
+        renderGroupedReport(container, allItems, 'pessoa', 'Cliente / Fornecedor');
+      } else if (agrupamento === 'categoria') {
+        renderGroupedReport(container, allItems, 'categoria', 'Categoria Financeira');
+      } else if (agrupamento === 'status') {
+        renderGroupedReport(container, allItems, 'status', 'Status');
+      } else {
+        allItems.sort((a, b) => (a.vencimento > b.vencimento ? 1 : -1));
+        container.innerHTML = generateReportTableHtml(allItems, 'Lançamentos Financeiros (Ordem Cronológica)');
+      }
+    }
+
+    function renderGroupedReport(container, items, groupKey, groupLabel) {
+      const groups = {};
+      items.forEach(item => {
+        const val = item[groupKey] || 'Outros';
+        if (!groups[val]) groups[val] = [];
+        groups[val].push(item);
+      });
+
+      let html = '';
+      const sortedKeys = Object.keys(groups).sort();
+
+      sortedKeys.forEach(key => {
+        const groupItems = groups[key];
+        groupItems.sort((a, b) => (a.vencimento > b.vencimento ? 1 : -1));
+        
+        const gRec = groupItems.filter(i => i.tipoLanc === 'receber').reduce((acc, c) => acc + Number(c.valor), 0);
+        const gPag = groupItems.filter(i => i.tipoLanc === 'pagar').reduce((acc, c) => acc + Number(c.valor), 0);
+        const gSaldo = gRec - gPag;
+
+        const subtotalText = `Total a Receber: ${formatMoney(gRec)} | Total a Pagar: ${formatMoney(gPag)} | Saldo: ${formatMoney(gSaldo)}`;
+
+        html += `
+          <div class="page-break-inside-avoid space-y-2 mb-6">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-100 px-4 py-2.5 rounded-lg border border-slate-200">
+              <span class="font-bold text-slate-800 text-xs sm:text-sm uppercase tracking-wide">${groupLabel}: ${key}</span>
+              <span class="text-xs font-semibold text-slate-700">${subtotalText}</span>
+            </div>
+            ${generateReportTableHtml(groupItems, null, false)}
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function generateReportTableHtml(items, title = null, showHeaderBox = true) {
+      let totReceber = 0, totPagar = 0;
+
+      const rows = items.map(item => {
+        const isPagar = item.tipoLanc === 'pagar';
+        const isBaixado = item.status === 'pago' || item.status === 'recebido';
+        const isAtrasado = !isBaixado && item.vencimento < TODAY_STR;
+        
+        if (isPagar) totPagar += Number(item.valor);
+        else totReceber += Number(item.valor);
+
+        let statusText = '';
+        if (isBaixado) {
+          statusText = `<span class="text-emerald-700 font-bold">${isPagar ? 'Pago' : 'Recebido'}</span>`;
+        } else if (isAtrasado) {
+          statusText = `<span class="text-red-600 font-bold">Atrasado</span>`;
+        } else {
+          statusText = `<span class="text-slate-600 font-medium">Pendente</span>`;
+        }
+
+        const dataBaixa = isPagar ? item.dataPagamento : item.dataRecebimento;
+
+        return `
+          <tr class="page-break-inside-avoid">
+            <td class="text-center font-bold ${isPagar ? 'text-rose-700' : 'text-emerald-700'}">
+              ${isPagar ? 'PAGAR' : 'RECEBER'}
+            </td>
+            <td class="whitespace-nowrap font-medium">${formatDate(item.vencimento)}</td>
+            <td class="whitespace-nowrap text-slate-500">${dataBaixa ? formatDate(dataBaixa) : '-'}</td>
+            <td class="font-bold text-slate-900">${item.pessoa}</td>
+            <td>
+              <div>${item.descricao}</div>
+              ${item.documento ? `<span class="text-[9px] text-slate-400">Doc: ${item.documento}</span>` : ''}
+            </td>
+            <td class="text-slate-600 text-[10px]">${item.categoria}</td>
+            <td class="text-center">${statusText}</td>
+            <td class="text-right font-bold ${isPagar ? 'text-rose-700' : 'text-emerald-700'}">
+              ${formatMoney(item.valor)}
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      return `
+        <div class="overflow-x-auto">
+          ${title && showHeaderBox ? `<h4 class="font-bold text-xs uppercase text-slate-700 mb-2">${title}</h4>` : ''}
+          <table class="w-full text-left text-xs border border-slate-200 print-table">
+            <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px] border-b border-slate-300">
+              <tr>
+                <th class="px-3 py-2 text-center w-16">Tipo</th>
+                <th class="px-3 py-2 w-24">Vencimento</th>
+                <th class="px-3 py-2 w-24">Baixa</th>
+                <th class="px-3 py-2">Cliente / Fornecedor</th>
+                <th class="px-3 py-2">Descrição</th>
+                <th class="px-3 py-2">Categoria</th>
+                <th class="px-3 py-2 text-center w-20">Status</th>
+                <th class="px-3 py-2 text-right w-28">Valor (R$)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+              ${rows}
+            </tbody>
+            <tfoot class="bg-slate-50 font-bold border-t-2 border-slate-300 text-xs text-slate-900">
+              <tr>
+                <td colspan="7" class="px-3 py-2 text-right uppercase tracking-wider">Subtotal:</td>
+                <td class="px-3 py-2 text-right">
+                  ${totReceber > 0 ? `<div class="text-emerald-700">+ ${formatMoney(totReceber)}</div>` : ''}
+                  ${totPagar > 0 ? `<div class="text-rose-700">- ${formatMoney(totPagar)}</div>` : ''}
+                  <div class="border-t border-slate-300 pt-0.5 ${totReceber - totPagar >= 0 ? 'text-blue-700' : 'text-rose-700'}">
+                    Líq: ${formatMoney(totReceber - totPagar)}
+                  </div>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      `;
+    }
+
+    // --- QUICK PERIOD FILTERS IN REPORT ---
+    function setReportPeriod(type) {
+      const dtIni = document.getElementById('repDataInicio');
+      const dtFim = document.getElementById('repDataFim');
+
+      if (type === 'mes-atual') {
+        dtIni.value = '2026-10-01';
+        dtFim.value = '2026-10-31';
+      } else if (type === 'mes-passado') {
+        dtIni.value = '2026-09-01';
+        dtFim.value = '2026-09-30';
+      } else if (type === 'proximo-mes') {
+        dtIni.value = '2026-11-01';
+        dtFim.value = '2026-11-30';
+      } else if (type === 'ano-atual') {
+        dtIni.value = '2026-01-01';
+        dtFim.value = '2026-12-31';
+      } else if (type === 'todos') {
+        dtIni.value = '';
+        dtFim.value = '';
+      }
+      renderRelatorios();
+    }
+
+    // --- CSV EXPORT FUNCTION ---
+    function exportReportCSV() {
+      const tipo = document.getElementById('repTipo').value;
+      const entidade = document.getElementById('repEntidade').value;
+      const dtInicio = document.getElementById('repDataInicio').value;
+      const dtFim = document.getElementById('repDataFim').value;
+      const statusFiltro = document.getElementById('repStatus').value;
+
+      let rows = [['Tipo', 'Vencimento', 'Data Baixa', 'Pessoa/Empresa', 'Descricao', 'Categoria', 'Status', 'Valor_BRL']];
+
+      const allItems = [
+        ...state.receber.map(r => ({ ...r, tipoLanc: 'RECEBER', pessoa: r.cliente, dataBaixa: r.dataRecebimento })),
+        ...state.pagar.map(p => ({ ...p, tipoLanc: 'PAGAR', pessoa: p.fornecedor, dataBaixa: p.dataPagamento }))
+      ];
+
+      allItems.forEach(item => {
+        if (tipo !== 'todos' && item.tipoLanc.toLowerCase() !== tipo.toLowerCase()) return;
+        if (entidade !== 'todos' && item.pessoa !== entidade) return;
+        if (dtInicio && item.vencimento < dtInicio) return;
+        if (dtFim && item.vencimento > dtFim) return;
+
+        const isBaixado = item.status === 'pago' || item.status === 'recebido';
+        if (statusFiltro === 'pendente' && isBaixado) return;
+        if (statusFiltro === 'baixado' && !isBaixado) return;
+        if (statusFiltro === 'atrasado' && !(item.status === 'pendente' && item.vencimento < TODAY_STR)) return;
+
+        rows.push([
+          item.tipoLanc,
+          item.vencimento,
+          item.dataBaixa || '',
+          `"${(item.pessoa || '').replace(/"/g, '""')}"`,
+          `"${(item.descricao || '').replace(/"/g, '""')}"`,
+          `"${(item.categoria || '').replace(/"/g, '""')}"`,
+          item.status,
+          Number(item.valor).toFixed(2)
+        ]);
+      });
+
+      const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(";")).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `relatorio_financeiro_${TODAY_STR}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showToast('Relatório CSV exportado com sucesso!', 'success');
+    }
+
+    // --- MODAL CONTROLS: PAGAR ---
+    function openModalPagar(id = null) {
+      const modal = document.getElementById('modalPagar');
+      const form = document.getElementById('formPagar');
+      form.reset();
+      document.getElementById('pagarId').value = '';
+      document.getElementById('fieldPagarDataPagamento').classList.add('hidden');
+
+      if (id) {
+        const item = state.pagar.find(p => p.id === id);
+        if (item) {
+          document.getElementById('modalPagarTitle').innerText = 'Editar Conta a Pagar';
+          document.getElementById('pagarId').value = item.id;
+          document.getElementById('pagarDescricao').value = item.descricao;
+          document.getElementById('pagarFornecedor').value = item.fornecedor;
+          document.getElementById('pagarCategoria').value = item.categoria;
+          document.getElementById('pagarValor').value = item.valor;
+          document.getElementById('pagarVencimento').value = item.vencimento;
+          document.getElementById('pagarStatus').value = item.status;
+          document.getElementById('pagarForma').value = item.forma || 'Boleto Bancário';
+          document.getElementById('pagarDocumento').value = item.documento || '';
+          document.getElementById('pagarObs').value = item.obs || '';
+
+          if (item.status === 'pago') {
+            document.getElementById('fieldPagarDataPagamento').classList.remove('hidden');
+            document.getElementById('pagarDataPagamento').value = item.dataPagamento || item.vencimento;
+          }
+        }
+      } else {
+        document.getElementById('modalPagarTitle').innerText = 'Nova Conta a Pagar';
+        document.getElementById('pagarVencimento').value = TODAY_STR;
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModalPagar() {
+      document.getElementById('modalPagar').classList.add('hidden');
+    }
+
+    // --- MODAL CONTROLS: RECEBER ---
+    function openModalReceber(id = null) {
+      const modal = document.getElementById('modalReceber');
+      const form = document.getElementById('formReceber');
+      form.reset();
+      document.getElementById('receberId').value = '';
+      document.getElementById('fieldReceberDataRecebimento').classList.add('hidden');
+
+      if (id) {
+        const item = state.receber.find(r => r.id === id);
+        if (item) {
+          document.getElementById('modalReceberTitle').innerText = 'Editar Conta a Receber';
+          document.getElementById('receberId').value = item.id;
+          document.getElementById('receberDescricao').value = item.descricao;
+          document.getElementById('receberCliente').value = item.cliente;
+          document.getElementById('receberCategoria').value = item.categoria;
+          document.getElementById('receberValor').value = item.valor;
+          document.getElementById('receberVencimento').value = item.vencimento;
+          document.getElementById('receberStatus').value = item.status;
+          document.getElementById('receberForma').value = item.forma || 'PIX';
+          document.getElementById('receberDocumento').value = item.documento || '';
+          document.getElementById('receberObs').value = item.obs || '';
+
+          if (item.status === 'recebido') {
+            document.getElementById('fieldReceberDataRecebimento').classList.remove('hidden');
+            document.getElementById('receberDataRecebimento').value = item.dataRecebimento || item.vencimento;
+          }
+        }
+      } else {
+        document.getElementById('modalReceberTitle').innerText = 'Nova Conta a Receber';
+        document.getElementById('receberVencimento').value = TODAY_STR;
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModalReceber() {
+      document.getElementById('modalReceber').classList.add('hidden');
+    }
+
+    // --- MODAL BAIXA RÁPIDA ---
+    function openModalBaixa(id, tipo) {
+      const modal = document.getElementById('modalBaixa');
+      const item = tipo === 'pagar' 
+        ? state.pagar.find(p => p.id === id)
+        : state.receber.find(r => r.id === id);
+
+      if (!item) return;
+
+      document.getElementById('baixaId').value = id;
+      document.getElementById('baixaTipo').value = tipo;
+      document.getElementById('baixaDescricao').innerText = item.descricao;
+      document.getElementById('baixaEntidade').innerText = tipo === 'pagar' ? `Fornecedor: ${item.fornecedor}` : `Cliente: ${item.cliente}`;
+      document.getElementById('baixaValor').innerText = formatMoney(item.valor);
+      document.getElementById('baixaData').value = TODAY_STR;
+      document.getElementById('baixaForma').value = item.forma || (tipo === 'pagar' ? 'Boleto Bancário' : 'PIX');
+
+      const header = document.getElementById('modalBaixaHeader');
+      const btnConfirm = document.getElementById('btnConfirmBaixa');
+
+      if (tipo === 'pagar') {
+        header.className = 'px-6 py-4 text-white flex items-center justify-between bg-rose-600';
+        document.getElementById('modalBaixaTitle').innerText = 'Confirmar Pagamento';
+        btnConfirm.className = 'px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold transition';
+        btnConfirm.innerText = 'Confirmar Pagamento';
+      } else {
+        header.className = 'px-6 py-4 text-white flex items-center justify-between bg-emerald-600';
+        document.getElementById('modalBaixaTitle').innerText = 'Confirmar Recebimento';
+        btnConfirm.className = 'px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition';
+        btnConfirm.innerText = 'Confirmar Recebimento';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModalBaixa() {
+      document.getElementById('modalBaixa').classList.add('hidden');
+    }
+
+    function estornarBaixa(id, tipo) {
+      if (tipo === 'pagar') {
+        const item = state.pagar.find(p => p.id === id);
+        if (item) {
+          item.status = 'pendente';
+          item.dataPagamento = '';
+          saveState();
+          showToast('Baixa estornada. O título retornou para Pendente.', 'info');
+          renderCurrentView();
+        }
+      } else {
+        const item = state.receber.find(r => r.id === id);
+        if (item) {
+          item.status = 'pendente';
+          item.dataRecebimento = '';
+          saveState();
+          showToast('Baixa estornada. O título retornou para Pendente.', 'info');
+          renderCurrentView();
+        }
+      }
+    }
+
+    // --- MODAL CONTATOS ---
+    function openModalContato(id = null) {
+      const modal = document.getElementById('modalContato');
+      const form = document.getElementById('formContato');
+      form.reset();
+      document.getElementById('contatoId').value = '';
+
+      if (id) {
+        const item = state.contatos.find(c => c.id === id);
+        if (item) {
+          document.getElementById('modalContatoTitle').innerText = 'Editar Cadastro';
+          document.getElementById('contatoId').value = item.id;
+          document.getElementById('contatoTipo').value = item.tipo;
+          document.getElementById('contatoNome').value = item.nome;
+          document.getElementById('contatoDocumento').value = item.documento || '';
+          document.getElementById('contatoTelefone').value = item.telefone || '';
+          document.getElementById('contatoEmail').value = item.email || '';
+          document.getElementById('contatoCidade').value = item.cidade || '';
+        }
+      } else {
+        document.getElementById('modalContatoTitle').innerText = 'Novo Cadastro';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModalContato() {
+      document.getElementById('modalContato').classList.add('hidden');
+    }
+
+    // --- DELETE MODAL ---
+    function promptDelete(type, id) {
+      state.deleteTarget = { type, id };
+      const modal = document.getElementById('modalDelete');
+      const promptText = document.getElementById('deletePromptText');
+
+      if (type === 'pagar') {
+        const it = state.pagar.find(p => p.id === id);
+        promptText.innerText = `Deseja realmente excluir a conta a pagar "${it ? it.descricao : ''}"?`;
+      } else if (type === 'receber') {
+        const it = state.receber.find(r => r.id === id);
+        promptText.innerText = `Deseja realmente excluir a conta a receber "${it ? it.descricao : ''}"?`;
+      } else if (type === 'contato') {
+        const it = state.contatos.find(c => c.id === id);
+        promptText.innerText = `Deseja excluir o cadastro de "${it ? it.nome : ''}"? Os lançamentos vinculados permanecerão no histórico.`;
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModalDelete() {
+      state.deleteTarget = null;
+      document.getElementById('modalDelete').classList.add('hidden');
+    }
+
+    function confirmDelete() {
+      if (!state.deleteTarget) return;
+      const { type, id } = state.deleteTarget;
+
+      if (type === 'pagar') {
+        state.pagar = state.pagar.filter(p => p.id !== id);
+        showToast('Conta a pagar excluída.', 'danger');
+      } else if (type === 'receber') {
+        state.receber = state.receber.filter(r => r.id !== id);
+        showToast('Conta a receber excluída.', 'danger');
+      } else if (type === 'contato') {
+        state.contatos = state.contatos.filter(c => c.id !== id);
+        showToast('Contato excluído.', 'danger');
+      }
+
+      saveState();
+      closeModalDelete();
+      renderCurrentView();
+    }
+
+    // --- SETUP EVENT LISTENERS ---
+    function setupEventListeners() {
+      // Navigation
+      document.getElementById('navDashboard').addEventListener('click', () => switchTab('dashboard'));
+      document.getElementById('navPagar').addEventListener('click', () => switchTab('pagar'));
+      document.getElementById('navReceber').addEventListener('click', () => switchTab('receber'));
+      document.getElementById('navContatos').addEventListener('click', () => switchTab('contatos'));
+      document.getElementById('navRelatorios').addEventListener('click', () => switchTab('relatorios'));
+
+      document.getElementById('btnVerTodasContas').addEventListener('click', () => switchTab('pagar'));
+
+      // Quick header buttons
+      document.getElementById('btnQuickPagar').addEventListener('click', () => openModalPagar());
+      document.getElementById('btnQuickReceber').addEventListener('click', () => openModalReceber());
+      document.getElementById('btnNovoPagar').addEventListener('click', () => openModalPagar());
+      document.getElementById('btnNovoReceber').addEventListener('click', () => openModalReceber());
+      document.getElementById('btnNovoContato').addEventListener('click', () => openModalContato());
+
+      // Contatos Tabs Filter
+      document.getElementById('tabContatosTodos').addEventListener('click', function() {
+        state.contatosFilter = 'todos';
+        updateContatoTabStyles(this);
+        renderContatos();
+      });
+      document.getElementById('tabContatosClientes').addEventListener('click', function() {
+        state.contatosFilter = 'cliente';
+        updateContatoTabStyles(this);
+        renderContatos();
+      });
+      document.getElementById('tabContatosFornecedores').addEventListener('click', function() {
+        state.contatosFilter = 'fornecedor';
+        updateContatoTabStyles(this);
+        renderContatos();
+      });
+
+      function updateContatoTabStyles(activeBtn) {
+        ['tabContatosTodos', 'tabContatosClientes', 'tabContatosFornecedores'].forEach(id => {
+          const btn = document.getElementById(id);
+          if (btn === activeBtn) {
+            btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white transition";
+          } else {
+            btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-200 transition";
+          }
+        });
+      }
+
+      // Filter changes
+      document.getElementById('filterPagarSearch').addEventListener('input', renderPagar);
+      document.getElementById('filterPagarStatus').addEventListener('change', renderPagar);
+      document.getElementById('filterPagarFornecedor').addEventListener('change', renderPagar);
+
+      document.getElementById('filterReceberSearch').addEventListener('input', renderReceber);
+      document.getElementById('filterReceberStatus').addEventListener('change', renderReceber);
+      document.getElementById('filterReceberCliente').addEventListener('change', renderReceber);
+
+      // Report filters change
+      ['repTipo', 'repEntidade', 'repDataInicio', 'repDataFim', 'repStatus', 'repAgrupamento'].forEach(id => {
+        document.getElementById(id).addEventListener('change', renderRelatorios);
+      });
+
+      // Quick period buttons
+      document.querySelectorAll('.btn-period-quick').forEach(btn => {
+        btn.addEventListener('click', () => {
+          setReportPeriod(btn.getAttribute('data-period'));
+        });
+      });
+
+      // Functions for Generating PDF & Printing
+      function generatePDFReport() {
+        const modal = document.getElementById('modalPrintOptions');
+        modal.classList.add('hidden');
+        showToast('Gerando arquivo PDF em alta definição...', 'info');
+
+        const element = document.getElementById('printableReportArea');
+        const printOnlyEls = element.querySelectorAll('.print-only');
+        printOnlyEls.forEach(el => el.classList.remove('hidden'));
+
+        const opt = {
+          margin: [8, 8, 8, 8],
+          filename: `relatorio_financeiro_${TODAY_STR}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        if (typeof html2pdf !== 'undefined') {
+          html2pdf().set(opt).from(element).save().then(() => {
+            printOnlyEls.forEach(el => el.classList.add('hidden'));
+            showToast('PDF baixado com sucesso no seu dispositivo!', 'success');
+          }).catch(err => {
+            printOnlyEls.forEach(el => el.classList.add('hidden'));
+            console.error('Erro ao gerar PDF:', err);
+            showToast('Fallback: Abrindo janela de impressão alternativa...', 'info');
+            openPrintableWindow();
+          });
+        } else {
+          printOnlyEls.forEach(el => el.classList.add('hidden'));
+          openPrintableWindow();
+        }
+      }
+
+      function openPrintableWindow() {
+        const modal = document.getElementById('modalPrintOptions');
+        modal.classList.add('hidden');
+        showToast('Preparando página de impressão...', 'info');
+
+        const reportEl = document.getElementById('printableReportArea');
+        const printOnlyEls = reportEl.querySelectorAll('.print-only');
+        printOnlyEls.forEach(el => el.classList.remove('hidden'));
+        const reportContent = reportEl.innerHTML;
+        printOnlyEls.forEach(el => el.classList.add('hidden'));
+
+        const printDoc = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório Financeiro - Impressão</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"><\/script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #ffffff; color: #111827; padding: 24px; }
+    .print-table { width: 100%; border-collapse: collapse; }
+    .print-table th, .print-table td { border: 1px solid #d1d5db; padding: 6px 8px; font-size: 11px; }
+    .print-table th { background-color: #f3f4f6; font-weight: 700; }
+    .print-card { border: 1px solid #e5e7eb; background: #fafafa; }
+    .page-break-inside-avoid { break-inside: avoid; page-break-inside: avoid; }
+    @media print {
+      @page { size: A4 portrait; margin: 10mm 12mm; }
+      body { padding: 0; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+    <div>
+      <p class="font-bold text-sm text-amber-900">Documento Pronto para Impressão ou Salvar como PDF</p>
+      <p class="text-xs text-amber-700">Se a janela de impressão não abrir automaticamente, clique no botão ao lado ou pressione Ctrl+P.</p>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="window.print()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow transition">
+        🖨️ Imprimir Agora
+      </button>
+      <button onclick="window.close()" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold text-xs rounded-lg transition">
+        Fechar
+      </button>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto">
+    ${reportContent}
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        try { window.print(); } catch(e) {}
+      }, 500);
+    };
+  <\/script>
+</body>
+</html>`;
+
+        const blob = new Blob([printDoc], { type: 'text/html;charset=utf-8' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        const newTab = window.open(blobUrl, '_blank');
+        if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+          // If popup is blocked by iframe, download as printable HTML file
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = `relatorio_impressao_${TODAY_STR}.html`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          showToast('Arquivo de impressão baixado com sucesso!', 'info');
+        } else {
+          showToast('Relatório aberto em nova aba!', 'success');
+        }
+      }
+
+      // Print Button Handler: opens modal with direct actions
+      const modalPrint = document.getElementById('modalPrintOptions');
+      document.getElementById('btnPrintReport').addEventListener('click', () => {
+        // Also attempt direct window.print() if browser allows
+        try {
+          // In non-sandboxed environment this opens print dialog directly
+          window.print();
+        } catch (e) {
+          console.warn('Iframe blocked print, opening modal:', e);
+        }
+        modalPrint.classList.remove('hidden');
+      });
+
+      document.getElementById('modalPrintClose').addEventListener('click', () => modalPrint.classList.add('hidden'));
+      document.getElementById('btnCancelPrintOptions').addEventListener('click', () => modalPrint.classList.add('hidden'));
+      document.getElementById('btnOptionDownloadPDF').addEventListener('click', generatePDFReport);
+      document.getElementById('btnOptionDirectPrint').addEventListener('click', openPrintableWindow);
+
+      // Export CSV Button
+      document.getElementById('btnExportCSV').addEventListener('click', exportReportCSV);
+
+      // Modals Close
+      document.getElementById('modalPagarClose').addEventListener('click', closeModalPagar);
+      document.getElementById('btnCancelPagar').addEventListener('click', closeModalPagar);
+
+      document.getElementById('modalReceberClose').addEventListener('click', closeModalReceber);
+      document.getElementById('btnCancelReceber').addEventListener('click', closeModalReceber);
+
+      document.getElementById('modalBaixaClose').addEventListener('click', closeModalBaixa);
+      document.getElementById('btnCancelBaixa').addEventListener('click', closeModalBaixa);
+
+      document.getElementById('modalContatoClose').addEventListener('click', closeModalContato);
+      document.getElementById('btnCancelContato').addEventListener('click', closeModalContato);
+
+      document.getElementById('btnCancelDelete').addEventListener('click', closeModalDelete);
+      document.getElementById('btnConfirmDelete').addEventListener('click', confirmDelete);
+
+      // Form Pagar submit
+      document.getElementById('pagarStatus').addEventListener('change', function() {
+        const field = document.getElementById('fieldPagarDataPagamento');
+        if (this.value === 'pago') {
+          field.classList.remove('hidden');
+          document.getElementById('pagarDataPagamento').value = TODAY_STR;
+        } else {
+          field.classList.add('hidden');
+        }
+      });
+
+      document.getElementById('formPagar').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('pagarId').value;
+        const descricao = document.getElementById('pagarDescricao').value.trim();
+        const fornecedor = document.getElementById('pagarFornecedor').value.trim();
+        const categoria = document.getElementById('pagarCategoria').value;
+        const valor = parseFloat(document.getElementById('pagarValor').value);
+        const vencimento = document.getElementById('pagarVencimento').value;
+        const status = document.getElementById('pagarStatus').value;
+        const dataPagamento = status === 'pago' ? document.getElementById('pagarDataPagamento').value || TODAY_STR : '';
+        const forma = document.getElementById('pagarForma').value;
+        const documento = document.getElementById('pagarDocumento').value.trim();
+        const obs = document.getElementById('pagarObs').value.trim();
+
+        const exists = state.contatos.some(c => c.nome.toLowerCase() === fornecedor.toLowerCase());
+        if (!exists && fornecedor) {
+          state.contatos.push({
+            id: 'c_' + Date.now(),
+            tipo: 'fornecedor',
+            nome: fornecedor,
+            documento: '',
+            telefone: '',
+            email: '',
+            cidade: ''
+          });
+        }
+
+        if (id) {
+          const item = state.pagar.find(p => p.id === id);
+          if (item) {
+            Object.assign(item, { descricao, fornecedor, categoria, valor, vencimento, status, dataPagamento, forma, documento, obs });
+            showToast('Conta a pagar atualizada com sucesso!', 'success');
+          }
+        } else {
+          state.pagar.push({
+            id: 'p_' + Date.now(),
+            descricao, fornecedor, categoria, valor, vencimento, status, dataPagamento, forma, documento, obs
+          });
+          showToast('Conta a pagar cadastrada com sucesso!', 'success');
+        }
+
+        saveState();
+        closeModalPagar();
+        renderCurrentView();
+      });
+
+      // Form Receber submit
+      document.getElementById('receberStatus').addEventListener('change', function() {
+        const field = document.getElementById('fieldReceberDataRecebimento');
+        if (this.value === 'recebido') {
+          field.classList.remove('hidden');
+          document.getElementById('receberDataRecebimento').value = TODAY_STR;
+        } else {
+          field.classList.add('hidden');
+        }
+      });
+
+      document.getElementById('formReceber').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('receberId').value;
+        const descricao = document.getElementById('receberDescricao').value.trim();
+        const cliente = document.getElementById('receberCliente').value.trim();
+        const categoria = document.getElementById('receberCategoria').value;
+        const valor = parseFloat(document.getElementById('receberValor').value);
+        const vencimento = document.getElementById('receberVencimento').value;
+        const status = document.getElementById('receberStatus').value;
+        const dataRecebimento = status === 'recebido' ? document.getElementById('receberDataRecebimento').value || TODAY_STR : '';
+        const forma = document.getElementById('receberForma').value;
+        const documento = document.getElementById('receberDocumento').value.trim();
+        const obs = document.getElementById('receberObs').value.trim();
+
+        const exists = state.contatos.some(c => c.nome.toLowerCase() === cliente.toLowerCase());
+        if (!exists && cliente) {
+          state.contatos.push({
+            id: 'c_' + Date.now(),
+            tipo: 'cliente',
+            nome: cliente,
+            documento: '',
+            telefone: '',
+            email: '',
+            cidade: ''
+          });
+        }
+
+        if (id) {
+          const item = state.receber.find(r => r.id === id);
+          if (item) {
+            Object.assign(item, { descricao, cliente, categoria, valor, vencimento, status, dataRecebimento, forma, documento, obs });
+            showToast('Conta a receber atualizada com sucesso!', 'success');
+          }
+        } else {
+          state.receber.push({
+            id: 'r_' + Date.now(),
+            descricao, cliente, categoria, valor, vencimento, status, dataRecebimento, forma, documento, obs
+          });
+          showToast('Conta a receber cadastrada com sucesso!', 'success');
+        }
+
+        saveState();
+        closeModalReceber();
+        renderCurrentView();
+      });
+
+      // Form Baixa submit
+      document.getElementById('formBaixa').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('baixaId').value;
+        const tipo = document.getElementById('baixaTipo').value;
+        const dataBaixa = document.getElementById('baixaData').value;
+        const forma = document.getElementById('baixaForma').value;
+
+        if (tipo === 'pagar') {
+          const item = state.pagar.find(p => p.id === id);
+          if (item) {
+            item.status = 'pago';
+            item.dataPagamento = dataBaixa;
+            item.forma = forma;
+            showToast(`Pagamento de ${formatMoney(item.valor)} registrado com sucesso!`, 'success');
+          }
+        } else {
+          const item = state.receber.find(r => r.id === id);
+          if (item) {
+            item.status = 'recebido';
+            item.dataRecebimento = dataBaixa;
+            item.forma = forma;
+            showToast(`Recebimento de ${formatMoney(item.valor)} registrado com sucesso!`, 'success');
+          }
+        }
+
+        saveState();
+        closeModalBaixa();
+        renderCurrentView();
+      });
+
+      // Form Contato submit
+      document.getElementById('formContato').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('contatoId').value;
+        const tipo = document.getElementById('contatoTipo').value;
+        const nome = document.getElementById('contatoNome').value.trim();
+        const documento = document.getElementById('contatoDocumento').value.trim();
+        const telefone = document.getElementById('contatoTelefone').value.trim();
+        const email = document.getElementById('contatoEmail').value.trim();
+        const cidade = document.getElementById('contatoCidade').value.trim();
+
+        if (id) {
+          const item = state.contatos.find(c => c.id === id);
+          if (item) {
+            Object.assign(item, { tipo, nome, documento, telefone, email, cidade });
+            showToast('Cadastro atualizado com sucesso!', 'success');
+          }
+        } else {
+          state.contatos.push({
+            id: 'c_' + Date.now(),
+            tipo, nome, documento, telefone, email, cidade
+          });
+          showToast('Novo cliente/fornecedor cadastrado!', 'success');
+        }
+
+        saveState();
+        closeModalContato();
+        renderCurrentView();
+      });
+
+      // Backup & Demo Reset buttons
+      // Modal Zerar Dados
+      const modalZerar = document.getElementById('modalZerar');
+      document.getElementById('btnZerarDados').addEventListener('click', () => {
+        modalZerar.classList.remove('hidden');
+      });
+      document.getElementById('btnCancelZerar').addEventListener('click', () => {
+        modalZerar.classList.add('hidden');
+      });
+      document.getElementById('btnConfirmZerar').addEventListener('click', () => {
+        state.contatos = [];
+        state.pagar = [];
+        state.receber = [];
+        saveState();
+        modalZerar.classList.add('hidden');
+        showToast('Todos os dados foram zerados com sucesso! O sistema está limpo.', 'success');
+        renderCurrentView();
+      });
+
+      // Carregar Demo
+      document.getElementById('btnResetDemo').addEventListener('click', () => {
+        state.contatos = JSON.parse(JSON.stringify(DEMO_CONTATOS));
+        state.pagar = JSON.parse(JSON.stringify(DEMO_PAGAR));
+        state.receber = JSON.parse(JSON.stringify(DEMO_RECEBER));
+        saveState();
+        showToast('Dados de exemplo carregados com sucesso!', 'info');
+        renderCurrentView();
+      });
+
+      document.getElementById('btnBackup').addEventListener('click', () => {
+        const backupData = {
+          exportDate: new Date().toISOString(),
+          contatos: state.contatos,
+          pagar: state.pagar,
+          receber: state.receber
+        };
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup_financeiro_${TODAY_STR}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('Backup JSON exportado com sucesso!', 'success');
+      });
+    }
+
+    // --- INITIALIZATION ---
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      setupEventListeners();
+      
+      document.getElementById('repDataInicio').value = '2026-10-01';
+      document.getElementById('repDataFim').value = '2026-10-31';
+
+      switchTab('dashboard');
+    });
+  </script>
+</body>
+</html>
